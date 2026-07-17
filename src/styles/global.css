@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #000000;
+  --color-surface: #0a0a0a;
+  --color-raised: #111111;
+  --color-overlay: #171717;
+  --color-hover: #1a1a1a;
+
+  --color-text: #ededed;
+  --color-text-secondary: #a1a1a1;
+  --color-text-muted: #878787;
+  --color-text-disabled: #525252;
+
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.15);
+
+  --color-accent: #0070f3;
+  --color-accent-hover: #0060df;
+  --color-error: #ee0000;
+  --color-error-hover: #cc0000;
+  --color-success: #0070f3;
+  --color-warning: #f5a623;
+
+  --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'SFMono-Regular', monospace;
+}
+
+html {
+  font-family: var(--font-sans);
+  background-color: var(--color-canvas);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: white;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px var(--color-surface) inset !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+}

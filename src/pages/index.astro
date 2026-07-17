@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+---
+
+<BaseLayout title="Internship Tracker">
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="text-center space-y-8 px-4">
+      <div class="space-y-4">
+        <h1 class="text-5xl font-semibold tracking-tight">
+          Internship <span class="text-accent">Tracker</span>
+        </h1>
+        <p class="text-text-secondary text-lg max-w-md mx-auto">
+          Seguimiento simple para tu pasantía. Registra tu progreso diario, documenta aprendizajes y alcanza tus objetivos.
+        </p>
+      </div>
+
+      <div class="flex items-center justify-center gap-4">
+        <a
+          href="/login"
+          class="bg-surface border border-border hover:border-border-strong text-text px-6 py-3 rounded-md text-sm font-medium transition-colors duration-150"
+        >
+          Iniciar sesión
+        </a>
+        <a
+          href="/register"
+          class="bg-accent hover:bg-accent-hover text-white px-6 py-3 rounded-md text-sm font-medium transition-colors duration-150"
+        >
+          Crear cuenta
+        </a>
+      </div>
+
+      <div class="pt-8 border-t border-border">
+        <p class="text-text-muted text-sm">
+          ¿Ya tienes una cuenta?
+          <a href="/login" class="text-accent hover:text-accent-hover transition-colors">
+            Inicia sesión
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
