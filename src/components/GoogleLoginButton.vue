@@ -4,8 +4,7 @@ import { PUBLIC_API_URL } from 'astro:env/client'
 const API_BASE = PUBLIC_API_URL
 
 function handleGoogleLogin() {
-  const callbackUrl = `${window.location.origin}/auth/callback`
-  window.location.href = `${API_BASE}/auth/google/redirect?redirect_uri=${encodeURIComponent(callbackUrl)}`
+  window.location.href = `${API_BASE}/auth/google/redirect`
 }
 </script>
 
