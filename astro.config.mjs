@@ -14,7 +14,6 @@ export default defineConfig({
       PUBLIC_API_URL: envField.string({
         context: 'client',
         access: 'public',
-        default: 'http://localhost:3333/api/v1',
       }),
     },
   },
