@@ -8,16 +8,21 @@ const visibleError = ref<string | null>(null)
 onMounted(() => {
   const params = new URLSearchParams(window.location.search)
   const token = params.get('token')
-  const userStr = params.get('user')
+  let userStr = params.get('user')
   const error = params.get('error')
+
+  if (userStr) {
+    const cutIdx = userStr.search(/[?&#]/)
+    if (cutIdx !== -1) {
+      userStr = userStr.slice(0, cutIdx)
+    }
+  }
 
   console.log('[GoogleCallback] mounted', {
     hasToken: !!token,
     tokenLength: token?.length,
     hasUserStr: !!userStr,
     userStrLength: userStr?.length,
-    userStrFirst: userStr?.slice(0, 50),
-    error,
   })
 
   if (error) {
@@ -27,39 +32,16 @@ onMounted(() => {
 
   if (!token || !userStr) {
     visibleError.value = `Missing token or user. token=${!!token} user=${!!userStr}`
-    console.log('[GoogleCallback] Missing token or user, NOT redirecting (showing error)')
     return
   }
 
   try {
-    let user
-    try {
-      user = JSON.parse(userStr)
-      console.log('[GoogleCallback] Parsed user directly (no decode needed)')
-    } catch {
-      console.log('[GoogleCallback] Direct parse failed, trying decodeURIComponent')
-      try {
-        user = JSON.parse(decodeURIComponent(userStr))
-        console.log('[GoogleCallback] Parsed user after decode')
-      } catch (e2) {
-        visibleError.value = `Parse failed. userStr (first 200 chars): ${userStr.slice(0, 200)}`
-        console.error('[GoogleCallback] Both parse attempts failed', {
-          userStr,
-          userStrSlice: userStr?.slice(0, 200),
-        })
-        return
-      }
-    }
-    console.log('[GoogleCallback] Setting auth, redirecting to dashboard', user)
+    const user = JSON.parse(userStr)
     setAuth(user, token)
-    console.log('[GoogleCallback] localStorage after setAuth:', {
-      token: localStorage.getItem('auth_token')?.slice(0, 10),
-      user: localStorage.getItem('auth_user')?.slice(0, 50),
-    })
     window.location.replace('/dashboard')
   } catch (e) {
-    visibleError.value = `Unexpected error: ${(e as Error).message}`
-    console.error('[GoogleCallback] Unexpected error', e)
+    visibleError.value = `Parse failed. userStr: ${userStr.slice(0, 200)}`
+    console.error('[GoogleCallback] Parse failed', e, { userStr })
   }
 })
 </script>
