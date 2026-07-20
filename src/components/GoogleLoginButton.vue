@@ -2,7 +2,8 @@
 const API_BASE = import.meta.env.PUBLIC_API_URL || 'http://localhost:3333/api/v1'
 
 function handleGoogleLogin() {
-  window.location.href = `${API_BASE}/auth/google/redirect`
+  const callbackUrl = `${window.location.origin}/auth/callback`
+  window.location.href = `${API_BASE}/auth/google/redirect?redirect_uri=${encodeURIComponent(callbackUrl)}`
 }
 </script>
 

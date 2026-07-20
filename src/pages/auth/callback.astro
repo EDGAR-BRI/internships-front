@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import GoogleCallbackHandler from '../../components/GoogleCallbackHandler.vue'
+---
+
+<BaseLayout title="Iniciando sesión - Internship Tracker">
+  <div class="min-h-screen flex items-center justify-center">
+    <GoogleCallbackHandler client:load />
+  </div>
+</BaseLayout>

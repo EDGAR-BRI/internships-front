@@ -1,10 +1,11 @@
 ---
 import AuthLayout from '../../layouts/AuthLayout.astro'
-import GoogleCallbackHandler from '../../components/GoogleCallbackHandler.vue'
+import AuthGuard from '../../components/AuthGuard.vue'
 import LogEntryList from '../../components/LogEntryList.vue'
 ---
 
 <AuthLayout title="Dashboard - Internship Tracker">
-  <GoogleCallbackHandler client:load />
-  <LogEntryList client:load />
+  <AuthGuard client:load>
+    <LogEntryList client:load />
+  </AuthGuard>
 </AuthLayout>

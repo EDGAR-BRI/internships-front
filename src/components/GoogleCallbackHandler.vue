@@ -2,31 +2,35 @@
 import { onMounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 
-const { setAuth, loadFromStorage, isAuthenticated } = useAuth()
+const { setAuth } = useAuth()
 
-onMounted(async () => {
-  await loadFromStorage()
-
+onMounted(() => {
   const params = new URLSearchParams(window.location.search)
   const token = params.get('token')
   const userStr = params.get('user')
+  const error = params.get('error')
 
-  if (token && userStr) {
-    try {
-      const user = JSON.parse(decodeURIComponent(userStr))
-      setAuth(user, token)
-      window.history.replaceState({}, '', '/dashboard')
-    } catch (e) {
-      console.error('Error parsing user data from URL')
-    }
+  if (error) {
+    window.location.replace(`/login?error=${encodeURIComponent(error)}`)
+    return
   }
 
-  if (!isAuthenticated.value && !token) {
-    window.location.href = '/login'
+  if (!token || !userStr) {
+    window.location.replace('/login?error=missing_token')
+    return
+  }
+
+  try {
+    const user = JSON.parse(decodeURIComponent(userStr))
+    setAuth(user, token)
+    window.location.replace('/dashboard')
+  } catch (e) {
+    console.error('Error parsing user data from URL', e)
+    window.location.replace('/login?error=invalid_callback')
   }
 })
 </script>
 
 <template>
-  <div></div>
+  <p class="text-text-secondary text-sm">Iniciando sesión...</p>
 </template>
