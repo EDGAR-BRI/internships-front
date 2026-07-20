@@ -15,7 +15,6 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "@astrojs/node": "^10.0.4",
     "@astrojs/vercel": "^10.0.8",
     "@astrojs/vue": "^5.0.0",
     "@tailwindcss/vite": "^4.3.2",
