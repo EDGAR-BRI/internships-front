@@ -8,7 +8,7 @@ const ready = ref(false)
 onMounted(async () => {
   await loadFromStorage()
   if (!isAuthenticated.value) {
-    window.location.href = '/login'
+    window.location.replace('/login')
     return
   }
   ready.value = true

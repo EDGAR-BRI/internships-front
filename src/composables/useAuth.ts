@@ -39,7 +39,8 @@ export function useAuth() {
       const profile = await api.get<User>('/account/profile', savedToken)
       user.value = profile
       localStorage.setItem('auth_user', JSON.stringify(profile))
-    } catch {
+    } catch (err) {
+      console.error('Profile fetch failed, logging out:', err)
       logout()
     } finally {
       loading.value = false
