@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig } from 'astro/config'
+import { defineConfig, envField } from 'astro/config'
 import vue from '@astrojs/vue'
 import vercel from '@astrojs/vercel'
 import tailwindcss from '@tailwindcss/vite'
@@ -9,6 +9,15 @@ export default defineConfig({
   output: 'server',
   adapter: vercel(),
   integrations: [vue()],
+  env: {
+    schema: {
+      PUBLIC_API_URL: envField.string({
+        context: 'client',
+        access: 'public',
+        default: 'http://localhost:3333/api/v1',
+      }),
+    },
+  },
   vite: {
     plugins: [tailwindcss()],
   },

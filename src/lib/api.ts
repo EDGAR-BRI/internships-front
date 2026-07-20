@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.PUBLIC_API_URL || 'http://localhost:3333/api/v1'
+import { PUBLIC_API_URL } from 'astro:env/client'
+
+const API_BASE = PUBLIC_API_URL
 
 interface ApiOptions {
   method?: string
