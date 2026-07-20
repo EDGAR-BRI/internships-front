@@ -29,7 +29,24 @@ onMounted(() => {
   }
 
   try {
-    const user = JSON.parse(decodeURIComponent(userStr))
+    let user
+    try {
+      user = JSON.parse(userStr)
+      console.log('[GoogleCallback] Parsed user directly (no decode needed)')
+    } catch {
+      console.log('[GoogleCallback] Direct parse failed, trying decodeURIComponent')
+      try {
+        user = JSON.parse(decodeURIComponent(userStr))
+        console.log('[GoogleCallback] Parsed user after decode')
+      } catch (e2) {
+        console.error('[GoogleCallback] Both parse attempts failed', {
+          userStr,
+          userStrSlice: userStr?.slice(0, 200),
+        })
+        window.location.replace('/login?error=invalid_callback')
+        return
+      }
+    }
     console.log('[GoogleCallback] Setting auth, redirecting to dashboard', user)
     setAuth(user, token)
     console.log('[GoogleCallback] localStorage after setAuth:', {
@@ -38,7 +55,7 @@ onMounted(() => {
     })
     window.location.replace('/dashboard')
   } catch (e) {
-    console.error('[GoogleCallback] Error parsing user data from URL', e)
+    console.error('[GoogleCallback] Unexpected error', e)
     window.location.replace('/login?error=invalid_callback')
   }
 })
