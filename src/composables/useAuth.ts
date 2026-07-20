@@ -29,18 +29,29 @@ export function useAuth() {
     const savedToken = localStorage.getItem('auth_token')
     const savedUser = localStorage.getItem('auth_user')
 
-    if (!savedToken || !savedUser) return
+    console.log('[useAuth] loadFromStorage called', {
+      hasToken: !!savedToken,
+      tokenLength: savedToken?.length,
+      hasUser: !!savedUser,
+    })
+
+    if (!savedToken || !savedUser) {
+      console.log('[useAuth] No saved token/user, returning early')
+      return
+    }
 
     token.value = savedToken
     user.value = JSON.parse(savedUser)
 
     try {
       loading.value = true
+      console.log('[useAuth] Fetching /account/profile with token')
       const profile = await api.get<User>('/account/profile', savedToken)
+      console.log('[useAuth] Profile fetched successfully', profile)
       user.value = profile
       localStorage.setItem('auth_user', JSON.stringify(profile))
     } catch (err) {
-      console.error('Profile fetch failed, logging out:', err)
+      console.error('[useAuth] Profile fetch failed, logging out:', err)
       logout()
     } finally {
       loading.value = false
