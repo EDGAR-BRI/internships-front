@@ -35,6 +35,10 @@ function addNote() {
   newNotes.value.push('')
 }
 
+function openSettingsModal() {
+  window.dispatchEvent(new CustomEvent('open-settings-modal'))
+}
+
 function removeNote(index: number) {
   newNotes.value.splice(index, 1)
   if (newNotes.value.length === 0) {
@@ -292,7 +296,14 @@ function appendTranscript(field: 'theory' | 'impact' | 'resources', text: string
                     Se calcula automáticamente desde tu período de pasantía
                   </p>
                   <p v-else class="text-[11px] text-text-muted">
-                    <a href="/ajustes" class="text-accent hover:underline">Configura tu período</a> para cálculo automático
+                    <button
+                      type="button"
+                      @click="openSettingsModal"
+                      class="text-accent hover:underline"
+                    >
+                      Configura tu período
+                    </button>
+                    para cálculo automático
                   </p>
                 </div>
 

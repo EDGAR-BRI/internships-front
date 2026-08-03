@@ -298,7 +298,7 @@ onUnmounted(() => {
 
     <div v-if="!hasSettings && !loading" class="bg-warning/10 border border-warning/20 text-warning text-sm rounded-md p-3">
       No tienes configurado el período de pasantía.
-      <a href="/ajustes" class="underline font-medium">Configúralo aquí</a>
+      <button @click="openSettingsModal" class="underline font-medium">Configúralo aquí</button>
       para ver el cálculo de días restantes y la fecha estimada de fin.
     </div>
 
