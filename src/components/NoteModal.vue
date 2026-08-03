@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, nextTick } from 'vue'
 import type { Note } from '../composables/useNotes'
+import { useNotes } from '../composables/useNotes'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
 import { appendDictatedText } from '../composables/useSpeechRecognition'
 import DictationButton from './DictationButton.vue'
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const { logEntries, fetchLogEntries } = useLogEntries()
+const { notes, fetchNotes } = useNotes()
 
 const title = ref('')
 const content = ref('')
@@ -62,15 +64,47 @@ function utcToLocal(utcStr: string): string {
   return local.toISOString().slice(0, 16)
 }
 
+function toLocalInput(d: Date): string {
+  const offset = d.getTimezoneOffset()
+  const local = new Date(d.getTime() - offset * 60000)
+  return local.toISOString().slice(0, 16)
+}
+
+function nowInput(): string {
+  return toLocalInput(new Date())
+}
+
+function lastNoteAfter(entry: LogEntry): string {
+  const entryNotes = notes.value
+    .filter((n) => n.logEntryId === entry.id && n.date)
+    .map((n) => new Date(n.date!))
+    .sort((a, b) => b.getTime() - a.getTime())
+
+  const last = entryNotes[0]
+  if (last) return toLocalInput(new Date(last.getTime() + 60000))
+  if (entry.datStart) return utcToLocal(entry.datStart)
+  return nowInput()
+}
+
 watch(
   () => props.isOpen,
-  (open) => {
+  async (open) => {
     if (open) {
       isViewing.value = props.viewOnly ?? false
       title.value = props.note?.title || ''
       content.value = props.note?.content || ''
       selectedLogEntryId.value = props.logEntryId ?? props.note?.logEntryId ?? null
-      noteDate.value = props.note?.date ? utcToLocal(props.note.date) : ''
+      if (!props.note) {
+        await fetchNotes()
+      }
+      if (props.note) {
+        noteDate.value = props.note.date ? utcToLocal(props.note.date) : ''
+      } else if (props.logEntryId) {
+        const entry = logEntries.value.find((e) => e.id === props.logEntryId)
+        noteDate.value = entry ? lastNoteAfter(entry) : nowInput()
+      } else {
+        noteDate.value = nowInput()
+      }
       activitySearch.value = selectedActivityName.value
       saveError.value = ''
       showDropdown.value = false
@@ -97,12 +131,15 @@ watch(content, () => {
 
 const isFixedActivity = () => !!props.logEntryId && !props.note
 
-function selectActivity(entry: LogEntry | null) {
+async function selectActivity(entry: LogEntry | null) {
   selectedLogEntryId.value = entry?.id ?? null
   activitySearch.value = entry?.name || ''
   showDropdown.value = false
-  if (entry?.datStart) {
-    noteDate.value = utcToLocal(entry.datStart)
+  if (entry) {
+    await fetchNotes()
+    noteDate.value = lastNoteAfter(entry)
+  } else {
+    noteDate.value = nowInput()
   }
 }
 
@@ -266,58 +303,65 @@ function autoResize(e: Event) {
                 Esta nota se guardará como nota extra de la actividad.
               </div>
 
-              <div v-if="!isFixedActivity()" class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-5">
-                <div class="space-y-1.5 min-w-0 relative">
-                  <label for="note-activity" class="block text-sm font-medium text-text">
-                    Actividad
-                  </label>
-                  <input
-                    id="note-activity"
-                    v-model="activitySearch"
-                    type="text"
-                    placeholder="Buscar actividad..."
-                    class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
-                    @focus="onSearchFocus"
-                    @blur="onSearchBlur"
-                  />
-                  <div
-                    v-if="showDropdown"
-                    class="absolute z-10 top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md shadow-lg max-h-40 overflow-y-auto"
+              <div v-if="!isFixedActivity()" class="space-y-1.5 min-w-0 relative">
+                <label for="note-activity" class="block text-sm font-medium text-text">
+                  Actividad
+                </label>
+                <input
+                  id="note-activity"
+                  v-model="activitySearch"
+                  type="text"
+                  placeholder="Buscar actividad..."
+                  class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                  @focus="onSearchFocus"
+                  @blur="onSearchBlur"
+                />
+                <div
+                  v-if="showDropdown"
+                  class="absolute z-10 top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md shadow-lg max-h-40 overflow-y-auto"
+                >
+                  <button
+                    type="button"
+                    @mousedown.prevent="selectActivity(null)"
+                    class="w-full text-left px-3 py-2 text-sm text-text-muted hover:bg-hover transition-colors"
                   >
-                    <button
-                      type="button"
-                      @mousedown.prevent="selectActivity(null)"
-                      class="w-full text-left px-3 py-2 text-sm text-text-muted hover:bg-hover transition-colors"
-                    >
-                      Sin actividad
-                    </button>
-                    <button
-                      v-for="entry in filteredActivities"
-                      :key="entry.id"
-                      type="button"
-                      @mousedown.prevent="selectActivity(entry)"
-                      class="w-full text-left px-3 py-2 text-sm text-text hover:bg-hover transition-colors truncate"
-                      :class="{ 'bg-accent/10 text-accent': entry.id === selectedLogEntryId }"
-                    >
-                      {{ entry.name }}
-                    </button>
-                    <p v-if="filteredActivities.length === 0" class="px-3 py-2 text-xs text-text-muted">
-                      Sin resultados
-                    </p>
-                  </div>
+                    Sin actividad
+                  </button>
+                  <button
+                    v-for="entry in filteredActivities"
+                    :key="entry.id"
+                    type="button"
+                    @mousedown.prevent="selectActivity(entry)"
+                    class="w-full text-left px-3 py-2 text-sm text-text hover:bg-hover transition-colors truncate"
+                    :class="{ 'bg-accent/10 text-accent': entry.id === selectedLogEntryId }"
+                  >
+                    {{ entry.name }}
+                  </button>
+                  <p v-if="filteredActivities.length === 0" class="px-3 py-2 text-xs text-text-muted">
+                    Sin resultados
+                  </p>
                 </div>
+              </div>
 
-                <div class="space-y-1.5 min-w-0">
+              <div class="space-y-1.5 min-w-0">
+                <div class="flex items-center justify-between gap-2">
                   <label for="note-date" class="block text-sm font-medium text-text">
                     Fecha de la nota
                   </label>
-                  <input
-                    id="note-date"
-                    v-model="noteDate"
-                    type="datetime-local"
-                    class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
-                  />
+                  <button
+                    type="button"
+                    @click="noteDate = nowInput()"
+                    class="text-xs font-medium text-accent hover:text-accent-hover hover:underline transition-colors"
+                  >
+                    Ahora
+                  </button>
                 </div>
+                <input
+                  id="note-date"
+                  v-model="noteDate"
+                  type="datetime-local"
+                  class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                />
               </div>
 
               <div class="space-y-1.5 min-w-0">
