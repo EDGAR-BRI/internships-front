@@ -3,6 +3,7 @@ import { downloadMarkdown } from './exportMarkdown'
 export interface ParsedNote {
   title: string | null
   content: string
+  tag: string
   date: string | null
 }
 
@@ -159,7 +160,7 @@ export function parseBitacoraMarkdown(md: string): {
         currentNote = null
         inActivityNotes = false
       } else {
-        currentNote = { title: title || null, content: '', date: null }
+        currentNote = { title: title || null, content: '', tag: 'general', date: null }
         if (section === 'notes') notes.push(currentNote)
       }
       continue
@@ -184,7 +185,7 @@ export function parseBitacoraMarkdown(md: string): {
       if (inActivityNotes) {
         const titleMatch = line.match(/^-\s+\*\*(.+?)\*\*$/)
         if (titleMatch) {
-          currentNote = { title: titleMatch[1].trim() || null, content: '', date: null }
+          currentNote = { title: titleMatch[1].trim() || null, content: '', tag: 'general', date: null }
           activity.notes.push(currentNote)
           continue
         }
@@ -192,6 +193,12 @@ export function parseBitacoraMarkdown(md: string): {
         const fechaMatch = line.match(/^-\s*\*?\*?fecha\*?\*?:\s*(.+)$/i)
         if (fechaMatch && currentNote) {
           currentNote.date = parseDateEs(fechaMatch[1])
+          continue
+        }
+
+        const etiquetaMatch = line.match(/^-\s*\*?\*?etiqueta\*?\*?:\s*(.+)$/i)
+        if (etiquetaMatch && currentNote) {
+          currentNote.tag = parseTag(etiquetaMatch[1])
           continue
         }
 
@@ -214,12 +221,31 @@ export function parseBitacoraMarkdown(md: string): {
         currentNote.date = parseDateEs(fechaMatch[1])
         continue
       }
+      const etiquetaMatch = line.match(/^-\s*\*?\*?etiqueta\*?\*?:\s*(.+)$/i)
+      if (etiquetaMatch) {
+        currentNote.tag = parseTag(etiquetaMatch[1])
+        continue
+      }
       if (normalizeKey(line) === 'sin notas') continue
       pushNoteContent(line, false)
     }
   }
 
   return { logEntries, notes }
+}
+
+function parseTag(value: string): string {
+  const key = normalizeKey(value)
+  switch (key) {
+    case 'aprendizaje':
+      return 'aprendizaje'
+    case 'sentimientos':
+      return 'sentimientos'
+    case 'idea':
+      return 'idea'
+    default:
+      return 'general'
+  }
 }
 
 export function buildTemplateMarkdown(): string {
@@ -237,13 +263,13 @@ Llena esta plantilla con tus actividades y notas, luego impórtala. Mantén el f
 - **Estado:** Terminada
 - **¿Qué hice?** Configuración del entorno
 - **Teorías:** Teorías aplicadas y sus autores
-- **Nuevos aprendizajes:** Lo que aprendiste
 - **Impacto:** Qué te impactó
 - **Otros elementos:** Notas adicionales
 
 **Notas:**
 - **Título de la nota**
   - Fecha: 6 de julio de 2026
+  - Etiqueta: Aprendizaje
   - Contenido de la nota vinculada a la actividad
 
 ## Notas
@@ -251,6 +277,7 @@ Llena esta plantilla con tus actividades y notas, luego impórtala. Mantén el f
 ### Título de la nota del día
 
 - **Fecha:** 6 de julio de 2026
+- **Etiqueta:** General
 
 Contenido de la nota del día, sin actividad.
 `

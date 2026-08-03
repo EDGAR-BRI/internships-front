@@ -10,7 +10,6 @@ export interface LogEntry {
   week: number | null
   area: string | null
   theory: string | null
-  attitudes: string | null
   impact: string | null
   resources: string | null
   datStart: string
@@ -25,7 +24,6 @@ export interface LogEntryFormData {
   week: number | null
   area: string | null
   theory: string | null
-  attitudes: string | null
   impact: string | null
   resources: string | null
   datStart: string

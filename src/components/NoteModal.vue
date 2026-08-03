@@ -4,6 +4,7 @@ import type { Note } from '../composables/useNotes'
 import { useNotes } from '../composables/useNotes'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
 import { appendDictatedText } from '../composables/useSpeechRecognition'
+import { NOTE_TAGS, type NoteTag } from '../utils/noteTags'
 import DictationButton from './DictationButton.vue'
 
 const props = defineProps<{
@@ -23,6 +24,7 @@ const { notes, fetchNotes } = useNotes()
 
 const title = ref('')
 const content = ref('')
+const tag = ref<NoteTag>('general')
 const selectedLogEntryId = ref<number | null>(null)
 const noteDate = ref('')
 const activitySearch = ref('')
@@ -93,6 +95,7 @@ watch(
       isViewing.value = props.viewOnly ?? false
       title.value = props.note?.title || ''
       content.value = props.note?.content || ''
+      tag.value = (props.note?.tag as NoteTag) || 'general'
       selectedLogEntryId.value = props.logEntryId ?? props.note?.logEntryId ?? null
       if (!props.note) {
         await fetchNotes()
@@ -176,6 +179,7 @@ async function handleSubmit() {
       savedNote = await updateNote(props.note.id, {
         title: title.value.trim() || null,
         content: content.value.trim(),
+        tag: tag.value,
         logEntryId: selectedLogEntryId.value,
         date: noteDate.value || null,
       })
@@ -183,6 +187,7 @@ async function handleSubmit() {
       savedNote = await createNote({
         title: title.value.trim() || null,
         content: content.value.trim(),
+        tag: tag.value,
         logEntryId: selectedLogEntryId.value ?? null,
         date: noteDate.value || null,
       })
@@ -340,6 +345,24 @@ function autoResize(e: Event) {
                   <p v-if="filteredActivities.length === 0" class="px-3 py-2 text-xs text-text-muted">
                     Sin resultados
                   </p>
+                </div>
+              </div>
+
+              <div class="space-y-1.5 min-w-0">
+                <label class="block text-sm font-medium text-text">Etiqueta</label>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="t in NOTE_TAGS"
+                    :key="t.value"
+                    type="button"
+                    @click="tag = t.value"
+                    class="px-3 py-1.5 rounded-md text-xs font-medium border transition-colors"
+                    :class="tag === t.value
+                      ? 'bg-accent text-white border-accent'
+                      : 'bg-overlay text-text-secondary hover:text-text border-border'"
+                  >
+                    {{ t.label }}
+                  </button>
                 </div>
               </div>
 

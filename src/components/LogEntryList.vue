@@ -62,7 +62,6 @@ const filteredEntries = computed(() => {
         t.name.toLowerCase().includes(q) ||
         (t.area?.toLowerCase().includes(q) ?? false) ||
         (t.theory?.toLowerCase().includes(q) ?? false) ||
-        (t.attitudes?.toLowerCase().includes(q) ?? false) ||
         (t.impact?.toLowerCase().includes(q) ?? false) ||
         (t.resources?.toLowerCase().includes(q) ?? false)
       const matchesNotes = notes.value

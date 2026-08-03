@@ -8,6 +8,7 @@ export interface Note {
   logEntryId: number | null
   title: string | null
   content: string
+  tag: string
   date: string | null
   createdAt: string
   updatedAt: string
@@ -16,6 +17,7 @@ export interface Note {
 export interface NoteFormData {
   title: string | null
   content: string
+  tag: string
   logEntryId: number | null
   date: string | null
 }
@@ -45,7 +47,7 @@ export function useNotes() {
     try {
       const data = await api.post<{ note: Note }>(
         '/notes',
-        { title: formData.title ?? null, content: formData.content, logEntryId: formData.logEntryId ?? null, date: formData.date ?? null },
+        { title: formData.title ?? null, content: formData.content, tag: formData.tag, logEntryId: formData.logEntryId ?? null, date: formData.date ?? null },
         token.value || undefined
       )
       notes.value.unshift(data.note)
@@ -56,7 +58,7 @@ export function useNotes() {
     }
   }
 
-  async function updateNote(id: number, data: { title?: string | null; content?: string; logEntryId?: number | null; date?: string | null }) {
+  async function updateNote(id: number, data: { title?: string | null; content?: string; tag?: string; logEntryId?: number | null; date?: string | null }) {
     error.value = ''
     try {
       const res = await api.put<{ note: Note }>(`/notes/${id}`, data, token.value || undefined)

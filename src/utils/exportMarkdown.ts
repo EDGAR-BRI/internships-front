@@ -1,5 +1,6 @@
 import type { LogEntry } from '../composables/useLogEntries'
 import type { Note } from '../composables/useNotes'
+import { tagLabel } from './noteTags'
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
@@ -60,7 +61,6 @@ export function buildMarkdown(logEntries: LogEntry[], notes: Note[]): string {
     lines.push(`- **Estado:** ${STATUS_LABELS[entry.status] || entry.status}`)
     lines.push(`- **¿Qué hice?** ${entry.name}`)
     pushField(lines, 'Teorías', entry.theory)
-    pushField(lines, 'Nuevos aprendizajes', entry.attitudes)
     pushField(lines, 'Impacto', entry.impact)
     pushField(lines, 'Otros elementos', entry.resources)
 
@@ -73,6 +73,7 @@ export function buildMarkdown(logEntries: LogEntry[], notes: Note[]): string {
       for (const note of entryNotes) {
         lines.push(`- **${note.title || 'Sin título'}**`)
         if (note.date) lines.push(`  - Fecha: ${formatDate(note.date)}`)
+        lines.push(`  - Etiqueta: ${tagLabel(note.tag)}`)
         const content = note.content.split('\n').join('\n  ')
         lines.push(`  - ${content}`)
       }
@@ -93,6 +94,7 @@ export function buildMarkdown(logEntries: LogEntry[], notes: Note[]): string {
     for (const note of standaloneNotes) {
       lines.push(`### ${note.title || 'Sin título'}`, '')
       if (note.date) lines.push(`- **Fecha:** ${formatDate(note.date)}`)
+      lines.push(`- **Etiqueta:** ${tagLabel(note.tag)}`)
       lines.push('', note.content, '')
     }
   }

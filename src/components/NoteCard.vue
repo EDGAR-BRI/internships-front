@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { Note } from '../composables/useNotes'
+import { tagLabel, tagClasses } from '../utils/noteTags'
 
 const props = defineProps<{
   note: Note
@@ -52,6 +53,12 @@ function handleDelete() {
             : 'bg-warning/10 text-warning'"
         >
           {{ note.logEntryId ? 'Nota de actividad' : 'Individual' }}
+        </span>
+        <span
+          class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border"
+          :class="tagClasses(note.tag)"
+        >
+          {{ tagLabel(note.tag) }}
         </span>
         <span class="inline-flex items-center text-[10px] gap-1 text-text-muted">
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

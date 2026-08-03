@@ -24,7 +24,6 @@ const area = ref('')
 const datStart = ref('')
 const datEnd = ref('')
 const theory = ref('')
-const attitudes = ref('')
 const impact = ref('')
 const resources = ref('')
 const showDetails = ref(false)
@@ -81,12 +80,10 @@ watch(
         datStart.value = props.entry.datStart ? utcToLocal(props.entry.datStart) : ''
         datEnd.value = props.entry.datEnd ? utcToLocal(props.entry.datEnd) : ''
         theory.value = props.entry.theory || ''
-        attitudes.value = props.entry.attitudes || ''
         impact.value = props.entry.impact || ''
         resources.value = props.entry.resources || ''
         showDetails.value = !!(
           props.entry.theory ||
-          props.entry.attitudes ||
           props.entry.impact ||
           props.entry.resources ||
           props.entry.week ||
@@ -100,7 +97,6 @@ watch(
         datStart.value = getTodayLocal()
         datEnd.value = ''
         theory.value = ''
-        attitudes.value = ''
         impact.value = ''
         resources.value = ''
         showDetails.value = false
@@ -136,7 +132,6 @@ function resizeTextarea(id: string) {
 }
 
 watch(theory, () => resizeTextarea('log-entry-theory'))
-watch(attitudes, () => resizeTextarea('log-entry-attitudes'))
 watch(impact, () => resizeTextarea('log-entry-impact'))
 watch(resources, () => resizeTextarea('log-entry-resources'))
 watch(newNotes, () => {
@@ -176,7 +171,6 @@ async function handleSubmit() {
       datStart: datStart.value,
       datEnd: datEnd.value || null,
       theory: theory.value.trim() || null,
-      attitudes: attitudes.value.trim() || null,
       impact: impact.value.trim() || null,
       resources: resources.value.trim() || null,
     }
@@ -193,7 +187,7 @@ async function handleSubmit() {
         const { createNote } = useNotes()
         await Promise.all(
           notesToCreate.map((content) =>
-            createNote({ content: content.trim(), logEntryId: savedEntry.id, date: null })
+            createNote({ content: content.trim(), tag: 'general', logEntryId: savedEntry.id, date: null })
           )
         )
       }
@@ -208,11 +202,10 @@ async function handleSubmit() {
   }
 }
 
-function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources', text: string) {
-  const current = field === 'theory' ? theory.value : field === 'attitudes' ? attitudes.value : field === 'impact' ? impact.value : resources.value
+function appendTranscript(field: 'theory' | 'impact' | 'resources', text: string) {
+  const current = field === 'theory' ? theory.value : field === 'impact' ? impact.value : resources.value
   const next = appendDictatedText(current, text)
   if (field === 'theory') theory.value = next
-  else if (field === 'attitudes') attitudes.value = next
   else if (field === 'impact') impact.value = next
   else resources.value = next
 }
@@ -425,20 +418,9 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                     </div>
 
                     <div class="space-y-1.5 min-w-0">
-                      <div class="flex items-center justify-between gap-2">
-                        <label for="log-entry-attitudes" class="block text-xs font-medium text-text">
-                          Nuevos aprendizajes
-                        </label>
-                        <DictationButton @dictated="(t) => appendTranscript('attitudes', t)" />
+                      <div class="bg-accent/10 border border-accent/20 text-accent text-xs rounded-md p-3">
+                        Los nuevos aprendizajes se registran como una nota con la etiqueta "Aprendizaje" vinculada a la actividad.
                       </div>
-                      <textarea
-                        id="log-entry-attitudes"
-                        v-model="attitudes"
-                        rows="3"
-                        placeholder="Conocimientos o habilidades prácticas aprendidas"
-                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0 overflow-hidden"
-                        @input="autoResize"
-                      ></textarea>
                     </div>
 
                     <div class="space-y-1.5 min-w-0">

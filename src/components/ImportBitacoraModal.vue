@@ -101,7 +101,6 @@ async function handleImport() {
         week: entry.week,
         area: entry.area,
         theory: entry.theory,
-        attitudes: entry.attitudes,
         impact: entry.impact,
         resources: entry.resources,
         datStart: entry.datStart || todayInMexicoCity(),
@@ -109,11 +108,23 @@ async function handleImport() {
       })
       createdEntries++
 
+      if (entry.attitudes && entry.attitudes.trim()) {
+        await createNote({
+          title: null,
+          content: entry.attitudes,
+          tag: 'aprendizaje',
+          logEntryId: logEntry.id,
+          date: entry.datStart,
+        })
+        createdNotes++
+      }
+
       for (const note of entry.notes) {
         if (!note.content.trim()) continue
         await createNote({
           title: note.title,
           content: note.content,
+          tag: note.tag,
           logEntryId: logEntry.id,
           date: note.date,
         })
@@ -126,6 +137,7 @@ async function handleImport() {
       await createNote({
         title: note.title,
         content: note.content,
+        tag: note.tag,
         logEntryId: null,
         date: note.date,
       })

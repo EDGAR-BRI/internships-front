@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useNotes, type Note } from '../composables/useNotes'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
+import { NOTE_TAGS } from '../utils/noteTags'
 import NoteCard from './NoteCard.vue'
 
 const NoteModal = defineAsyncComponent(() => import('./NoteModal.vue'))
@@ -28,6 +29,7 @@ const viewingEntry = ref<LogEntry | null>(null)
 const searchQuery = ref('')
 const dateFilter = ref<'all' | 'today' | 'week' | 'month'>('all')
 const noteTypeFilter = ref<'all' | 'standalone' | 'activity'>('all')
+const tagFilter = ref<string>('all')
 
 const filteredNotes = computed(() => {
   let result = notes.value
@@ -40,6 +42,10 @@ const filteredNotes = computed(() => {
     result = result.filter((n) => !n.logEntryId)
   } else if (noteTypeFilter.value === 'activity') {
     result = result.filter((n) => n.logEntryId)
+  }
+
+  if (tagFilter.value !== 'all') {
+    result = result.filter((n) => n.tag === tagFilter.value)
   }
 
   if (props.enableSearch && searchQuery.value.trim()) {
@@ -172,6 +178,29 @@ function closeDetailModal() {
           <option value="month">Este mes</option>
         </select>
       </div>
+    </div>
+
+    <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+      <button
+        @click="tagFilter = 'all'"
+        class="px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors"
+        :class="tagFilter === 'all'
+          ? 'bg-accent text-white'
+          : 'bg-overlay text-text-muted hover:text-text-secondary hover:bg-hover'"
+      >
+        Todas
+      </button>
+      <button
+        v-for="t in NOTE_TAGS"
+        :key="t.value"
+        @click="tagFilter = t.value"
+        class="px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors"
+        :class="tagFilter === t.value
+          ? 'bg-accent text-white'
+          : 'bg-overlay text-text-muted hover:text-text-secondary hover:bg-hover'"
+      >
+        {{ t.label }}
+      </button>
     </div>
 
     <div v-if="loading" class="flex items-center justify-center py-8">
