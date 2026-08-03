@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useAttendances } from '../composables/useAttendances'
+import { useAttendances, type Attendance } from '../composables/useAttendances'
 import { useSettings } from '../composables/useSettings'
 import { computeWeek } from '../utils/week'
+import AttendanceEditModal from './AttendanceEditModal.vue'
 
 const {
   attendances,
@@ -13,7 +14,6 @@ const {
   fetchSummary,
   registerFullDay,
   registerPartial,
-  updateAttendance,
   deleteAttendance,
   attendanceForDate,
 } = useAttendances()
@@ -32,12 +32,8 @@ const actionError = ref('')
 
 const attendanceMode = ref<'on_site' | 'remote'>('on_site')
 
-const editingId = ref<number | null>(null)
-const editIsFullDay = ref(false)
-const editHours = ref<number | ''>('')
-const editMode = ref<'on_site' | 'remote'>('on_site')
-const editLoading = ref(false)
-const editError = ref('')
+const editTarget = ref<Attendance | null>(null)
+const editModalOpen = ref(false)
 
 const deleteId = ref<number | null>(null)
 const deleteConfirmText = ref('')
@@ -125,10 +121,12 @@ function formatTime(iso: string | null): string {
 }
 
 function formatDateShort(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-MX', {
+  const parts = iso.slice(0, 10).split('-').map(Number)
+  if (parts.length !== 3 || parts.some((n) => isNaN(n))) return iso
+  const [y, m, d] = parts
+  return new Date(y, m - 1, d).toLocaleDateString('es-MX', {
     day: 'numeric',
     month: 'short',
-    timeZone: 'America/Mexico_City',
   })
 }
 
@@ -143,48 +141,28 @@ function weekForDate(iso: string): number | null {
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('es-MX', {
+  const parts = iso.slice(0, 10).split('-').map(Number)
+  if (parts.length !== 3 || parts.some((n) => isNaN(n))) return iso
+  const [y, m, d] = parts
+  return new Date(y, m - 1, d).toLocaleDateString('es-MX', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: 'America/Mexico_City',
   })
 }
 
 function startEdit(a: typeof attendances.value[0]) {
-  editingId.value = a.id
-  editIsFullDay.value = !!a.isFullDay
-  editHours.value = a.isFullDay ? '' : a.hours
-  editMode.value = a.mode ?? attendanceMode.value
-  editError.value = ''
+  editTarget.value = a
+  editModalOpen.value = true
 }
 
-function cancelEdit() {
-  editingId.value = null
-  editError.value = ''
+function closeEditModal() {
+  editModalOpen.value = false
+  editTarget.value = null
 }
 
-async function handleEditSave(a: typeof attendances.value[0]) {
-  editLoading.value = true
-  editError.value = ''
-  try {
-    if (editIsFullDay.value) {
-      await updateAttendance(a.id, { isFullDay: true, mode: editMode.value })
-    } else {
-      const hours = Number(editHours.value)
-      if (!hours || hours <= 0) {
-        editError.value = 'Ingresa una cantidad válida de horas'
-        return
-      }
-      await updateAttendance(a.id, { isFullDay: false, hours, mode: editMode.value })
-    }
-    editingId.value = null
-    await fetchSummary()
-  } catch (e: any) {
-    editError.value = e.message || 'Error al guardar'
-  } finally {
-    editLoading.value = false
-  }
+async function handleEditSaved() {
+  await fetchSummary()
 }
 
 function openDelete(a: typeof attendances.value[0]) {
@@ -497,7 +475,7 @@ onMounted(() => {
           class="bg-surface border border-border rounded-lg p-3"
         >
           <!-- Vista normal -->
-          <div v-if="editingId !== a.id" class="flex items-center justify-between">
+          <div class="flex items-center justify-between">
             <div class="space-y-0.5">
               <div class="flex items-center gap-2">
                 <p class="text-sm font-medium text-text">{{ formatDateShort(a.date) }}</p>
@@ -548,69 +526,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Vista edición inline -->
-          <div v-else class="space-y-3">
-            <div v-if="editError" class="bg-error/10 border border-error/20 text-error text-sm rounded-md p-3">
-              {{ editError }}
-            </div>
-            <div class="flex gap-2">
-              <button
-                @click="editIsFullDay = true"
-                :class="editIsFullDay ? 'bg-accent text-white' : 'bg-overlay text-text-secondary hover:text-text'"
-                class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Día completo
-              </button>
-              <button
-                @click="editIsFullDay = false"
-                :class="!editIsFullDay ? 'bg-accent text-white' : 'bg-overlay text-text-secondary hover:text-text'"
-                class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Parcial
-              </button>
-            </div>
-            <div class="flex gap-2">
-              <button
-                @click="editMode = 'on_site'"
-                :class="editMode === 'on_site' ? 'bg-accent text-white' : 'bg-overlay text-text-secondary hover:text-text'"
-                class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Presencial
-              </button>
-              <button
-                @click="editMode = 'remote'"
-                :class="editMode === 'remote' ? 'bg-accent text-white' : 'bg-overlay text-text-secondary hover:text-text'"
-                class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Remoto
-              </button>
-            </div>
-            <div v-if="!editIsFullDay" class="flex gap-2">
-              <input
-                v-model.number="editHours"
-                type="number"
-                min="1"
-                :max="summary?.fullDayHours || 24"
-                placeholder="Horas"
-                class="flex-1 bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-              />
-            </div>
-            <div class="flex gap-2">
-              <button
-                @click="handleEditSave(a)"
-                :disabled="editLoading"
-                class="flex-1 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                {{ editLoading ? 'Guardando...' : 'Guardar' }}
-              </button>
-              <button
-                @click="cancelEdit"
-                class="flex-1 bg-overlay hover:bg-hover text-text-secondary hover:text-text px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -660,6 +575,13 @@ onMounted(() => {
         </div>
       </Transition>
     </Teleport>
+
+    <AttendanceEditModal
+      :is-open="editModalOpen"
+      :attendance="editTarget"
+      @close="closeEditModal"
+      @saved="handleEditSaved"
+    />
   </div>
 </template>
 

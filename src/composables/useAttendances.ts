@@ -152,7 +152,7 @@ export function useAttendances() {
 
   async function updateAttendance(
     id: number,
-    payload: { isFullDay?: boolean; hours?: number; mode?: Attendance['mode'] }
+    payload: { date?: string; isFullDay?: boolean; hours?: number; mode?: Attendance['mode'] }
   ) {
     error.value = ''
     try {
