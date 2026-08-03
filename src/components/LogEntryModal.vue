@@ -264,6 +264,50 @@ function appendTranscript(field: 'theory' | 'impact' | 'resources', text: string
                 />
               </div>
 
+              <div v-if="!entry" class="border-t border-border pt-4 space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="block text-sm font-medium text-text">
+                    Notas iniciales <span class="text-text-muted">(opcional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    @click="addNote"
+                    class="text-xs text-accent hover:text-accent-hover transition-colors font-medium"
+                  >
+                    + Agregar nota
+                  </button>
+                </div>
+                <p class="text-xs text-text-muted">Se guardarán como notas de la actividad</p>
+
+                <div
+                  v-for="(note, idx) in newNotes"
+                  :key="idx"
+                  class="flex items-start gap-2"
+                >
+                  <textarea
+                    :id="'new-note-' + idx"
+                    v-model="newNotes[idx]"
+                    rows="2"
+                    placeholder="Escribe o dicta tu nota..."
+                    class="flex-1 min-w-0 box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none overflow-hidden"
+                    @input="autoResize"
+                  ></textarea>
+                  <div class="flex flex-col gap-1 pt-1">
+                    <DictationButton @dictated="(t) => appendNoteTranscript(idx, t)" />
+                    <button
+                      type="button"
+                      @click="removeNote(idx)"
+                      class="text-text-muted hover:text-error transition-colors p-1"
+                      title="Eliminar nota"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div class="space-y-1.5 min-w-0">
                 <label for="log-entry-status" class="block text-xs font-medium text-text">
                   Estado
@@ -344,50 +388,6 @@ function appendTranscript(field: 'theory' | 'impact' | 'resources', text: string
                     type="datetime-local"
                     class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
                   />
-                </div>
-              </div>
-
-              <div v-if="!entry" class="border-t border-border pt-4 space-y-3">
-                <div class="flex items-center justify-between">
-                  <label class="block text-sm font-medium text-text">
-                    Notas iniciales <span class="text-text-muted">(opcional)</span>
-                  </label>
-                  <button
-                    type="button"
-                    @click="addNote"
-                    class="text-xs text-accent hover:text-accent-hover transition-colors font-medium"
-                  >
-                    + Agregar nota
-                  </button>
-                </div>
-                <p class="text-xs text-text-muted">Se guardarán como notas de la actividad</p>
-
-                <div
-                  v-for="(note, idx) in newNotes"
-                  :key="idx"
-                  class="flex items-start gap-2"
-                >
-                  <textarea
-                    :id="'new-note-' + idx"
-                    v-model="newNotes[idx]"
-                    rows="2"
-                    placeholder="Escribe o dicta tu nota..."
-                    class="flex-1 min-w-0 box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none overflow-hidden"
-                    @input="autoResize"
-                  ></textarea>
-                  <div class="flex flex-col gap-1 pt-1">
-                    <DictationButton @dictated="(t) => appendNoteTranscript(idx, t)" />
-                    <button
-                      type="button"
-                      @click="removeNote(idx)"
-                      class="text-text-muted hover:text-error transition-colors p-1"
-                      title="Eliminar nota"
-                    >
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
                 </div>
               </div>
 
