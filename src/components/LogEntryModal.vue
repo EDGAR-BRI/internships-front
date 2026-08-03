@@ -142,16 +142,16 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
         @keydown="handleKeydown"
       >
         <div
-          class="bg-surface border border-border rounded-lg w-full max-w-sm shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
+          class="bg-surface border border-border rounded-lg w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
           @click.stop
         >
-          <div class="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
-            <h2 class="text-base font-semibold text-text">
+          <div class="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
+            <h2 class="text-lg font-semibold text-text">
               {{ entry ? 'Editar actividad' : 'Nueva actividad' }}
             </h2>
             <button
               @click="emit('close')"
-              class="text-text-muted hover:text-text transition-colors p-1 rounded-md hover:bg-overlay"
+              class="text-text-muted hover:text-text transition-colors p-1.5 rounded-md hover:bg-hover"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -160,13 +160,13 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
           </div>
 
           <form @submit.prevent="handleSubmit" class="flex flex-col flex-1 overflow-hidden">
-            <div class="px-4 py-3 space-y-3 overflow-y-auto flex-1 min-w-0">
-              <div v-if="saveError" class="bg-error/10 border border-error/20 text-error text-xs rounded-md p-2.5">
+            <div class="px-6 py-5 space-y-5 overflow-y-auto flex-1 min-w-0">
+              <div v-if="saveError" class="bg-error/10 border border-error/20 text-error text-sm rounded-md p-3">
                 {{ saveError }}
               </div>
 
-              <div class="space-y-1 min-w-0">
-                <label for="log-entry-name" class="block text-xs font-medium text-text-secondary">
+              <div class="space-y-1.5 min-w-0">
+                <label for="log-entry-name" class="block text-xs font-medium text-text">
                   Nombre <span class="text-error">*</span>
                 </label>
                 <input
@@ -174,28 +174,28 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                   v-model="name"
                   type="text"
                   placeholder="Nombre de la actividad"
-                  class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                  class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
                 />
               </div>
 
-              <div class="space-y-1 min-w-0">
-                <label for="log-entry-status" class="block text-xs font-medium text-text-secondary">
+              <div class="space-y-1.5 min-w-0">
+                <label for="log-entry-status" class="block text-xs font-medium text-text">
                   Estado
                 </label>
                 <select
                   id="log-entry-status"
                   v-model="status"
-                  class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                  class="w-full box-border h-[38px] appearance-none bg-surface bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23878787%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_8px_center] bg-no-repeat border border-border rounded-md px-2.5 pr-8 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
                 >
-                  <option value="pending">Pendiente</option>
-                  <option value="in_progress">En curso</option>
-                  <option value="done">Terminada</option>
+                  <option class="bg-surface text-text" value="pending">Pendiente</option>
+                  <option class="bg-surface text-text" value="in_progress">En curso</option>
+                  <option class="bg-surface text-text" value="done">Terminada</option>
                 </select>
               </div>
 
-              <div class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-3">
-                <div class="space-y-1 min-w-0">
-                  <label for="log-entry-week" class="block text-xs font-medium text-text-secondary">
+              <div class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-5">
+                <div class="space-y-1.5 min-w-0">
+                  <label for="log-entry-week" class="block text-xs font-medium text-text">
                     Semana #
                   </label>
                   <input
@@ -204,12 +204,12 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                     type="number"
                     min="1"
                     placeholder="Ej. 3"
-                    class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                    class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
                   />
                 </div>
 
-                <div class="space-y-1 min-w-0">
-                  <label for="log-entry-area" class="block text-xs font-medium text-text-secondary">
+                <div class="space-y-1.5 min-w-0">
+                  <label for="log-entry-area" class="block text-xs font-medium text-text">
                     Área / Departamento
                   </label>
                   <input
@@ -217,33 +217,33 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                     v-model="area"
                     type="text"
                     placeholder="Ej. Desarrollo"
-                    class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                    class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
                   />
                 </div>
               </div>
 
-              <div class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-3">
-                <div class="space-y-1 min-w-0">
-                  <label for="log-entry-dat-start" class="block text-xs font-medium text-text-secondary">
+              <div class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-5">
+                <div class="space-y-1.5 min-w-0">
+                  <label for="log-entry-dat-start" class="block text-xs font-medium text-text">
                     Inicio <span class="text-error">*</span>
                   </label>
                   <input
                     id="log-entry-dat-start"
                     v-model="datStart"
                     type="datetime-local"
-                    class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                    class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
                   />
                 </div>
 
-                <div class="space-y-1 min-w-0">
-                  <label for="log-entry-dat-end" class="block text-xs font-medium text-text-secondary">
+                <div class="space-y-1.5 min-w-0">
+                  <label for="log-entry-dat-end" class="block text-xs font-medium text-text">
                     Fin
                   </label>
                   <input
                     id="log-entry-dat-end"
                     v-model="datEnd"
                     type="datetime-local"
-                    class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                    class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
                   />
                 </div>
               </div>
@@ -252,7 +252,7 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                 <button
                   type="button"
                   @click="showDetails = !showDetails"
-                  class="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text transition-colors w-full py-1"
+                  class="flex items-center gap-1.5 text-sm text-text-secondary hover:text-accent transition-colors w-full py-1.5"
                 >
                   <svg
                     class="w-3.5 h-3.5 transition-transform duration-200"
@@ -267,10 +267,10 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                 </button>
 
                 <Transition name="expand">
-                  <div v-if="showDetails" class="mt-2 space-y-3 min-w-0">
-                    <div class="space-y-1 min-w-0">
+                  <div v-if="showDetails" class="mt-3 space-y-4 min-w-0">
+                    <div class="space-y-1.5 min-w-0">
                       <div class="flex items-center justify-between gap-2">
-                        <label for="log-entry-theory" class="block text-xs font-medium text-text-secondary">
+                        <label for="log-entry-theory" class="block text-xs font-medium text-text">
                           Teorías
                         </label>
                         <DictationButton @dictated="(t) => appendTranscript('theory', t)" />
@@ -278,15 +278,15 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                       <textarea
                         id="log-entry-theory"
                         v-model="theory"
-                        rows="2"
+                        rows="3"
                         placeholder="Teorías aprendidas en tus estudios que aplicaste"
-                        class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
+                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
                       ></textarea>
                     </div>
 
-                    <div class="space-y-1 min-w-0">
+                    <div class="space-y-1.5 min-w-0">
                       <div class="flex items-center justify-between gap-2">
-                        <label for="log-entry-attitudes" class="block text-xs font-medium text-text-secondary">
+                        <label for="log-entry-attitudes" class="block text-xs font-medium text-text">
                           Nuevos aprendizajes
                         </label>
                         <DictationButton @dictated="(t) => appendTranscript('attitudes', t)" />
@@ -294,15 +294,15 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                       <textarea
                         id="log-entry-attitudes"
                         v-model="attitudes"
-                        rows="2"
+                        rows="3"
                         placeholder="Conocimientos o habilidades prácticas aprendidas"
-                        class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
+                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
                       ></textarea>
                     </div>
 
-                    <div class="space-y-1 min-w-0">
+                    <div class="space-y-1.5 min-w-0">
                       <div class="flex items-center justify-between gap-2">
-                        <label for="log-entry-impact" class="block text-xs font-medium text-text-secondary">
+                        <label for="log-entry-impact" class="block text-xs font-medium text-text">
                           Impacto
                         </label>
                         <DictationButton @dictated="(t) => appendTranscript('impact', t)" />
@@ -310,15 +310,15 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                       <textarea
                         id="log-entry-impact"
                         v-model="impact"
-                        rows="2"
+                        rows="3"
                         placeholder="¿Qué te impresionó o impactó?"
-                        class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
+                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
                       ></textarea>
                     </div>
 
-                    <div class="space-y-1 min-w-0">
+                    <div class="space-y-1.5 min-w-0">
                       <div class="flex items-center justify-between gap-2">
-                        <label for="log-entry-resources" class="block text-xs font-medium text-text-secondary">
+                        <label for="log-entry-resources" class="block text-xs font-medium text-text">
                           Otros elementos a considerar
                         </label>
                         <DictationButton @dictated="(t) => appendTranscript('resources', t)" />
@@ -326,9 +326,9 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                       <textarea
                         id="log-entry-resources"
                         v-model="resources"
-                        rows="2"
+                        rows="3"
                         placeholder="Otros elementos o recursos"
-                        class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
+                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
                       ></textarea>
                     </div>
                   </div>
@@ -336,18 +336,18 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
               </div>
             </div>
 
-            <div class="flex items-center justify-end gap-2 px-4 py-3 border-t border-border flex-shrink-0">
+            <div class="flex items-center justify-end gap-2 px-6 py-5 border-t border-border flex-shrink-0">
               <button
                 type="button"
                 @click="emit('close')"
-                class="px-3 py-1.5 text-xs text-text-secondary hover:text-text hover:bg-overlay rounded-md transition-colors"
+                class="px-4 py-2 text-sm text-text-muted hover:text-text hover:bg-hover rounded-md transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 :disabled="saving"
-                class="bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-md text-xs font-medium transition-colors duration-150"
+                class="bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2 rounded-md text-sm font-medium transition-colors duration-150"
               >
                 {{ saving ? 'Guardando...' : (entry ? 'Guardar' : 'Crear') }}
               </button>

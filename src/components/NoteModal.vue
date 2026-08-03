@@ -87,16 +87,16 @@ function appendTranscript(text: string) {
         @keydown="handleKeydown"
       >
         <div
-          class="bg-surface border border-border rounded-lg w-full max-w-sm shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
+          class="bg-surface border border-border rounded-lg w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
           @click.stop
         >
-          <div class="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
-            <h2 class="text-base font-semibold text-text">
+          <div class="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
+            <h2 class="text-lg font-semibold text-text">
               {{ note ? 'Editar nota' : 'Nueva nota' }}
             </h2>
             <button
               @click="emit('close')"
-              class="text-text-muted hover:text-text transition-colors p-1 rounded-md hover:bg-overlay"
+              class="text-text-muted hover:text-text transition-colors p-1.5 rounded-md hover:bg-hover"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -105,18 +105,18 @@ function appendTranscript(text: string) {
           </div>
 
           <form @submit.prevent="handleSubmit" class="flex flex-col flex-1 overflow-hidden">
-            <div class="px-4 py-3 space-y-3 overflow-y-auto flex-1 min-w-0">
-              <div v-if="saveError" class="bg-error/10 border border-error/20 text-error text-xs rounded-md p-2.5">
+            <div class="px-6 py-5 space-y-5 overflow-y-auto flex-1 min-w-0">
+              <div v-if="saveError" class="bg-error/10 border border-error/20 text-error text-sm rounded-md p-3">
                 {{ saveError }}
               </div>
 
-              <div v-if="logEntryId && !note" class="bg-accent/10 border border-accent/20 text-accent text-xs rounded-md p-2.5">
+              <div v-if="logEntryId && !note" class="bg-accent/10 border border-accent/20 text-accent text-sm rounded-md p-3">
                 Esta nota se guardará como nota extra de la actividad.
               </div>
 
-              <div class="space-y-1 min-w-0">
+              <div class="space-y-1.5 min-w-0">
                 <div class="flex items-center justify-between gap-2">
-                  <label for="note-content" class="block text-xs font-medium text-text-secondary">
+                  <label for="note-content" class="block text-sm font-medium text-text">
                     Nota <span class="text-error">*</span>
                   </label>
                   <DictationButton @dictated="appendTranscript" />
@@ -124,25 +124,25 @@ function appendTranscript(text: string) {
                 <textarea
                   id="note-content"
                   v-model="content"
-                  rows="4"
+                  rows="5"
                   placeholder="Escribe o dicta tu nota..."
-                  class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
+                  class="w-full box-border bg-surface border border-border rounded-md px-3 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
                 ></textarea>
               </div>
             </div>
 
-            <div class="flex items-center justify-end gap-2 px-4 py-3 border-t border-border flex-shrink-0">
+            <div class="flex items-center justify-end gap-2 px-6 py-5 border-t border-border flex-shrink-0">
               <button
                 type="button"
                 @click="emit('close')"
-                class="px-3 py-1.5 text-xs text-text-secondary hover:text-text hover:bg-overlay rounded-md transition-colors"
+                class="px-4 py-2 text-sm text-text-muted hover:text-text hover:bg-hover rounded-md transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 :disabled="saving"
-                class="bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-md text-xs font-medium transition-colors duration-150"
+                class="bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2 rounded-md text-sm font-medium transition-colors duration-150"
               >
                 {{ saving ? 'Guardando...' : (note ? 'Guardar' : 'Crear') }}
               </button>
