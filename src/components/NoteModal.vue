@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted, nextTick } from 'vue'
 import type { Note } from '../composables/useNotes'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
 import DictationButton from './DictationButton.vue'
@@ -57,6 +57,13 @@ watch(
       activitySearch.value = selectedActivityName.value
       saveError.value = ''
       showDropdown.value = false
+      nextTick(() => {
+        const textarea = document.getElementById('note-content') as HTMLTextAreaElement | null
+        if (textarea) {
+          textarea.style.height = 'auto'
+          textarea.style.height = textarea.scrollHeight + 'px'
+        }
+      })
     }
   }
 )
@@ -138,6 +145,12 @@ function handleKeydown(e: KeyboardEvent) {
 
 function appendTranscript(text: string) {
   content.value = content.value ? `${content.value} ${text}` : text
+}
+
+function autoResize(e: Event) {
+  const el = e.target as HTMLTextAreaElement
+  el.style.height = 'auto'
+  el.style.height = el.scrollHeight + 'px'
 }
 </script>
 
@@ -247,7 +260,8 @@ function appendTranscript(text: string) {
                   v-model="content"
                   rows="5"
                   placeholder="Escribe o dicta tu nota..."
-                  class="w-full box-border bg-surface border border-border rounded-md px-3 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
+                  class="w-full box-border bg-surface border border-border rounded-md px-3 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0 overflow-hidden"
+                  @input="autoResize"
                 ></textarea>
               </div>
             </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import type { LogEntry, LogEntryFormData } from '../composables/useLogEntries'
 import { useSettings } from '../composables/useSettings'
 import { useAuth } from '../composables/useAuth'
@@ -47,6 +47,12 @@ function removeNote(index: number) {
 function appendNoteTranscript(index: number, text: string) {
   const current = newNotes.value[index]
   newNotes.value[index] = current ? `${current} ${text}` : text
+}
+
+function autoResize(e: Event) {
+  const el = e.target as HTMLTextAreaElement
+  el.style.height = 'auto'
+  el.style.height = el.scrollHeight + 'px'
 }
 
 function getTodayLocal(): string {
@@ -102,6 +108,12 @@ watch(
       }
       newNotes.value = ['']
       saveError.value = ''
+      nextTick(() => {
+        document.querySelectorAll('textarea').forEach((el) => {
+          el.style.height = 'auto'
+          el.style.height = el.scrollHeight + 'px'
+        })
+      })
     }
   }
 )
@@ -333,7 +345,8 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                     v-model="newNotes[idx]"
                     rows="2"
                     placeholder="Escribe o dicta tu nota..."
-                    class="flex-1 min-w-0 box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none"
+                    class="flex-1 min-w-0 box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none overflow-hidden"
+                    @input="autoResize"
                   ></textarea>
                   <div class="flex flex-col gap-1 pt-1">
                     <DictationButton @dictated="(t) => appendNoteTranscript(idx, t)" />
@@ -383,7 +396,8 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                         v-model="theory"
                         rows="3"
                         placeholder="Teorías aprendidas en tus estudios que aplicaste"
-                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
+                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0 overflow-hidden"
+                        @input="autoResize"
                       ></textarea>
                     </div>
 
@@ -399,7 +413,8 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                         v-model="attitudes"
                         rows="3"
                         placeholder="Conocimientos o habilidades prácticas aprendidas"
-                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
+                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0 overflow-hidden"
+                        @input="autoResize"
                       ></textarea>
                     </div>
 
@@ -415,7 +430,8 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                         v-model="impact"
                         rows="3"
                         placeholder="¿Qué te impresionó o impactó?"
-                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
+                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0 overflow-hidden"
+                        @input="autoResize"
                       ></textarea>
                     </div>
 
@@ -431,7 +447,8 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                         v-model="resources"
                         rows="3"
                         placeholder="Otros elementos o recursos"
-                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
+                        class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0 overflow-hidden"
+                        @input="autoResize"
                       ></textarea>
                     </div>
                   </div>
