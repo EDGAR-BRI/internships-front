@@ -279,7 +279,6 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                     <a href="/ajustes" class="text-accent hover:underline">Configura tu período</a> para cálculo automático
                   </p>
                 </div>
-                </div>
 
                 <div class="space-y-1.5 min-w-0">
                   <label for="log-entry-area" class="block text-xs font-medium text-text">
