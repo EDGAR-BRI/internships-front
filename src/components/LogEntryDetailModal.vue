@@ -70,17 +70,15 @@ function handleBackdropClick(e: MouseEvent) {
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="fade">
-      <div
-        v-if="isOpen && entry"
+  <div
+      v-if="isOpen && entry"
         class="fixed inset-0 z-[55] flex items-center justify-center p-4"
         @click="handleBackdropClick"
       >
         <div class="absolute inset-0 bg-black/60" />
 
         <div
-          class="relative bg-surface border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          class="relative bg-surface border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto modal-open"
           @click.stop
         >
           <!-- Header -->
@@ -284,18 +282,5 @@ function handleBackdropClick(e: MouseEvent) {
             </div>
           </div>
         </div>
-      </div>
-    </Transition>
-  </Teleport>
+    </div>
 </template>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

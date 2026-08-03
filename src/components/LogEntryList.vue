@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
 import { useNotes, type Note } from '../composables/useNotes'
 import LogEntryCard from './LogEntryCard.vue'
-
-const LogEntryModal = defineAsyncComponent(() => import('./LogEntryModal.vue'))
-const LogEntryDetailModal = defineAsyncComponent(() => import('./LogEntryDetailModal.vue'))
-const NoteModal = defineAsyncComponent(() => import('./NoteModal.vue'))
+import LogEntryModal from './LogEntryModal.vue'
+import LogEntryDetailModal from './LogEntryDetailModal.vue'
+import NoteModal from './NoteModal.vue'
 
 const props = defineProps<{
   title?: string

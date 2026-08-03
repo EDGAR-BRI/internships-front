@@ -168,7 +168,6 @@ function handleKeydown(e: KeyboardEvent) {
 
 <template>
   <Teleport to="body">
-    <Transition name="modal">
       <div
         v-if="isOpen"
         class="fixed inset-0 z-[70] overflow-y-auto bg-black/60 backdrop-blur-sm"
@@ -177,7 +176,7 @@ function handleKeydown(e: KeyboardEvent) {
       >
         <div class="min-h-full flex items-center justify-center p-4 sm:p-6">
           <div
-            class="bg-canvas border border-border rounded-lg w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden my-auto"
+            class="bg-canvas border border-border rounded-lg w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden my-auto modal-open"
             @click.stop
           >
             <div class="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
@@ -279,26 +278,8 @@ function handleKeydown(e: KeyboardEvent) {
           </div>
         </div>
       </div>
-    </Transition>
   </Teleport>
 </template>
 
 <style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-.modal-enter-active > div,
-.modal-leave-active > div {
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-.modal-enter-from > div,
-.modal-leave-to > div {
-  transform: scale(0.95);
-  opacity: 0;
-}
 </style>
