@@ -128,7 +128,7 @@ const isGrid = computed(() => props.viewMode === 'grid')
       <div class="flex items-start gap-3 mb-3">
         <button
           @click.stop="handleStatusToggle"
-          class="flex-shrink-0 w-6 h-6 rounded-md border transition-colors flex items-center justify-center mt-0.5"
+          class="status-toggle-btn flex-shrink-0 w-6 h-6 rounded-md border transition-all flex items-center justify-center mt-0.5 hover:scale-110 active:scale-95 hover:ring-2 hover:ring-accent/40"
           :class="entry.status === 'done'
             ? 'bg-accent border-accent'
             : entry.status === 'in_progress'
@@ -222,7 +222,7 @@ const isGrid = computed(() => props.viewMode === 'grid')
       <div class="flex items-center gap-3">
         <button
           @click.stop="handleStatusToggle"
-          class="flex-shrink-0 w-5 h-5 rounded border transition-colors flex items-center justify-center"
+          class="status-toggle-btn flex-shrink-0 w-5 h-5 rounded border transition-all flex items-center justify-center hover:scale-110 active:scale-95 hover:ring-2 hover:ring-accent/40"
           :class="entry.status === 'done'
             ? 'bg-accent border-accent'
             : entry.status === 'in_progress'
@@ -378,5 +378,30 @@ const isGrid = computed(() => props.viewMode === 'grid')
 .expand-leave-from {
   opacity: 1;
   max-height: 600px;
+}
+
+@keyframes status-vibrate {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-2px) rotate(-4deg);
+  }
+  40% {
+    transform: translateX(2px) rotate(4deg);
+  }
+  60% {
+    transform: translateX(-2px) rotate(-3deg);
+  }
+  80% {
+    transform: translateX(2px) rotate(3deg);
+  }
+}
+
+.status-toggle-btn {
+  animation: status-vibrate 0.45s ease-in-out 2;
+  animation-delay: 0.4s;
+  cursor: pointer;
 }
 </style>
