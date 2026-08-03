@@ -9,7 +9,7 @@ import NotesSection from '../../components/NotesSection.vue'
   <AuthGuard client:load>
     <div class="space-y-10">
       <LogEntryList client:load />
-      <NotesSection client:load />
+      <NotesSection client:visible />
     </div>
   </AuthGuard>
 </AuthLayout>

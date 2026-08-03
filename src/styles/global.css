@@ -22,7 +22,7 @@
   --color-success: #0070f3;
   --color-warning: #f5a623;
 
-  --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', -apple-system, system-ui, sans-serif;
   --font-mono: 'Geist Mono', 'SFMono-Regular', monospace;
 }
 
@@ -48,4 +48,27 @@ input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 30px var(--color-surface) inset !important;
   -webkit-text-fill-color: var(--color-text) !important;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-strong);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-disabled);
 }
