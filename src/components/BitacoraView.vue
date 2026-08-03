@@ -2,8 +2,31 @@
 import { ref, onMounted } from 'vue'
 import LogEntryList from './LogEntryList.vue'
 import NotesList from './NotesList.vue'
+import { useLogEntries } from '../composables/useLogEntries'
+import { useNotes } from '../composables/useNotes'
+import { buildMarkdown, downloadMarkdown } from '../utils/exportMarkdown'
 
 const activeTab = ref<'activities' | 'notes'>('activities')
+const exporting = ref(false)
+
+const { logEntries, fetchLogEntries, error: logEntriesError } = useLogEntries()
+const { notes, fetchNotes, error: notesError } = useNotes()
+
+async function handleExport() {
+  if (exporting.value) return
+  exporting.value = true
+  try {
+    await Promise.all([fetchLogEntries(), fetchNotes()])
+    if (logEntriesError.value || notesError.value) {
+      throw new Error(logEntriesError.value || notesError.value)
+    }
+    downloadMarkdown(buildMarkdown(logEntries.value, notes.value))
+  } catch (e) {
+    console.error('Error al exportar la bitácora', e)
+  } finally {
+    exporting.value = false
+  }
+}
 
 const tabs = [
   { value: 'activities' as const, label: 'Actividades' },
@@ -28,6 +51,16 @@ onMounted(() => {
         <h1 class="text-2xl font-semibold tracking-tight">Bitácora</h1>
         <p class="text-text-muted text-sm mt-1">Todas tus actividades y notas en un solo lugar</p>
       </div>
+      <button
+        @click="handleExport"
+        :disabled="exporting"
+        class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        {{ exporting ? 'Exportando…' : 'Exportar .md' }}
+      </button>
     </div>
 
     <div class="flex items-center gap-2 border-b border-border pb-2">
