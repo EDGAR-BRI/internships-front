@@ -3,6 +3,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 ---
 
 <BaseLayout title="Internship Tracker">
+  <script is:inline>
+    if (localStorage.getItem('auth_token')) {
+      window.location.replace('/dashboard')
+    }
+  </script>
   <div class="min-h-screen flex items-center justify-center">
     <div class="text-center space-y-8 px-4">
       <div class="space-y-4">

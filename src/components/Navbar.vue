@@ -1,23 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import SettingsModal from './SettingsModal.vue'
 
 const { user, isAuthenticated, logout, restoreSession } = useAuth()
 
-// Restaurar sesión SINCRÓNICAMENTE durante el setup, antes del primer render
-const navReady = ref(false)
-
+// Restaurar sesión lo antes posible (en el cliente al hidratar)
 if (typeof window !== 'undefined') {
   restoreSession()
-  navReady.value = true
 }
 
 onMounted(() => {
-  if (!navReady.value) {
-    restoreSession()
-    navReady.value = true
-  }
+  restoreSession()
 })
 
 async function handleLogout() {
@@ -32,7 +26,7 @@ function isActive(path: string): boolean {
 </script>
 
 <template>
-  <div v-show="navReady" class="contents">
+  <div class="contents">
     <!-- Desktop navbar -->
     <nav class="bg-canvas border-b border-border sticky top-0 z-50 hidden sm:block">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -78,17 +72,6 @@ function isActive(path: string): boolean {
             </div>
           </div>
 
-          <div v-else class="flex items-center gap-4">
-            <a href="/login" class="text-text-secondary hover:text-text text-sm transition-colors">
-              Iniciar sesión
-            </a>
-            <a
-              href="/register"
-              class="bg-accent hover:bg-accent-hover text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-150"
-            >
-              Crear cuenta
-            </a>
-          </div>
         </div>
       </div>
     </nav>

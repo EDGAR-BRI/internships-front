@@ -10,6 +10,7 @@ export interface Attendance {
   checkOut: string | null
   isFullDay: boolean | null
   hours: number
+  mode: 'on_site' | 'remote' | null
   createdAt: string
   updatedAt: string
 }
@@ -22,6 +23,8 @@ export interface AttendanceSummary {
   completedHours: number
   remainingDays: number
   remainingHours: number
+  onSiteDays: number
+  remoteDays: number
   targetEndDate: string | null
   estimatedEndDate: string | null
   pace: {
@@ -68,12 +71,12 @@ export function useAttendances() {
     }
   }
 
-  async function checkIn(date?: string, isFullDay?: boolean) {
+  async function checkIn(date?: string, isFullDay?: boolean, mode?: Attendance['mode']) {
     error.value = ''
     try {
       const data = await api.post<Attendance>(
         '/attendances/check-in',
-        { date: date || todayInMexicoCity(), isFullDay },
+        { date: date || todayInMexicoCity(), isFullDay, mode },
         token.value || undefined
       )
       attendances.value.unshift(data)
@@ -105,12 +108,12 @@ export function useAttendances() {
     }
   }
 
-  async function registerFullDay(date?: string) {
+  async function registerFullDay(date?: string, mode?: Attendance['mode']) {
     error.value = ''
     try {
       const data = await api.post<Attendance>(
         '/attendances/full-day',
-        { date: date || todayInMexicoCity() },
+        { date: date || todayInMexicoCity(), mode },
         token.value || undefined
       )
       const index = attendances.value.findIndex((a) => a.id === data.id)
@@ -126,12 +129,12 @@ export function useAttendances() {
     }
   }
 
-  async function registerPartial(date: string, hours: number) {
+  async function registerPartial(date: string, hours: number, mode?: Attendance['mode']) {
     error.value = ''
     try {
       const data = await api.post<Attendance>(
         '/attendances/partial',
-        { date, hours },
+        { date, hours, mode },
         token.value || undefined
       )
       const index = attendances.value.findIndex((a) => a.id === data.id)
@@ -149,7 +152,7 @@ export function useAttendances() {
 
   async function updateAttendance(
     id: number,
-    payload: { isFullDay?: boolean; hours?: number }
+    payload: { isFullDay?: boolean; hours?: number; mode?: Attendance['mode'] }
   ) {
     error.value = ''
     try {

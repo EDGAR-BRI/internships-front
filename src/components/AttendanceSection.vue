@@ -30,9 +30,12 @@ const partialHours = ref<number | ''>('')
 const actionLoading = ref(false)
 const actionError = ref('')
 
+const attendanceMode = ref<'on_site' | 'remote'>('on_site')
+
 const editingId = ref<number | null>(null)
 const editIsFullDay = ref(false)
 const editHours = ref<number | ''>('')
+const editMode = ref<'on_site' | 'remote'>('on_site')
 const editLoading = ref(false)
 const editError = ref('')
 
@@ -152,6 +155,7 @@ function startEdit(a: typeof attendances.value[0]) {
   editingId.value = a.id
   editIsFullDay.value = !!a.isFullDay
   editHours.value = a.isFullDay ? '' : a.hours
+  editMode.value = a.mode ?? attendanceMode.value
   editError.value = ''
 }
 
@@ -165,14 +169,14 @@ async function handleEditSave(a: typeof attendances.value[0]) {
   editError.value = ''
   try {
     if (editIsFullDay.value) {
-      await updateAttendance(a.id, { isFullDay: true })
+      await updateAttendance(a.id, { isFullDay: true, mode: editMode.value })
     } else {
       const hours = Number(editHours.value)
       if (!hours || hours <= 0) {
         editError.value = 'Ingresa una cantidad válida de horas'
         return
       }
-      await updateAttendance(a.id, { isFullDay: false, hours })
+      await updateAttendance(a.id, { isFullDay: false, hours, mode: editMode.value })
     }
     editingId.value = null
     await fetchSummary()
@@ -219,7 +223,7 @@ async function handlePartial() {
       actionError.value = 'Ingresa una cantidad válida de horas'
       return
     }
-    await registerPartial(selectedDate.value, hours)
+    await registerPartial(selectedDate.value, hours, attendanceMode.value)
     partialHours.value = ''
     await fetchSummary()
   } catch (e: any) {
@@ -233,7 +237,7 @@ async function handleFullDay() {
   actionLoading.value = true
   actionError.value = ''
   try {
-    await registerFullDay(selectedDate.value)
+    await registerFullDay(selectedDate.value, attendanceMode.value)
     await fetchSummary()
   } catch (e: any) {
     actionError.value = e.message || 'Error'
@@ -333,6 +337,27 @@ onMounted(() => {
         </p>
       </div>
 
+      <!-- Presencial / Remoto -->
+      <div class="bg-surface border border-border rounded-lg p-4 space-y-2">
+        <span class="text-sm font-medium text-text-secondary">Modalidad</span>
+        <div class="flex flex-wrap gap-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-accent"></span>
+            <span class="text-xs text-text-muted">Presencial</span>
+            <span class="text-sm font-semibold text-text">{{ summary.onSiteDays }} días</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-warning"></span>
+            <span class="text-xs text-text-muted">Remoto</span>
+            <span class="text-sm font-semibold text-text">{{ summary.remoteDays }} días</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-text-muted">Total</span>
+            <span class="text-sm font-semibold text-text">{{ summary.completedDays }} días</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Fechas fin -->
       <div class="bg-surface border border-border rounded-lg p-4 space-y-1 sm:col-span-2">
         <div class="flex flex-wrap gap-4">
@@ -368,6 +393,26 @@ onMounted(() => {
           type="date"
           class="w-full sm:w-auto bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
         />
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-xs font-medium text-text-secondary">Modalidad</label>
+        <div class="flex gap-2">
+          <button
+            @click="attendanceMode = 'on_site'"
+            :class="attendanceMode === 'on_site' ? 'bg-accent text-white' : 'bg-overlay text-text-secondary hover:text-text'"
+            class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            Presencial
+          </button>
+          <button
+            @click="attendanceMode = 'remote'"
+            :class="attendanceMode === 'remote' ? 'bg-accent text-white' : 'bg-overlay text-text-secondary hover:text-text'"
+            class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            Remoto
+          </button>
+        </div>
       </div>
 
       <div class="flex gap-2">
@@ -461,6 +506,18 @@ onMounted(() => {
               <p class="text-xs text-text-muted">
                 <span v-if="a.isFullDay" class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent/10 text-accent mr-1">Completo</span>
                 <span v-else class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-overlay text-text-secondary mr-1">Parcial</span>
+                <span
+                  v-if="a.mode === 'on_site'"
+                  class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent/10 text-accent mr-1"
+                >
+                  Presencial
+                </span>
+                <span
+                  v-else-if="a.mode === 'remote'"
+                  class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/10 text-warning mr-1"
+                >
+                  Remoto
+                </span>
                 <span v-if="a.checkIn && a.checkOut">Entrada {{ formatTime(a.checkIn) }} · Salida {{ formatTime(a.checkOut) }}</span>
                 <span v-else-if="!a.isFullDay && a.hours > 0">{{ a.hours }}h registradas</span>
                 <span v-else-if="!a.checkIn && !a.checkOut">Sin registro de hora</span>
@@ -510,6 +567,22 @@ onMounted(() => {
                 class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Parcial
+              </button>
+            </div>
+            <div class="flex gap-2">
+              <button
+                @click="editMode = 'on_site'"
+                :class="editMode === 'on_site' ? 'bg-accent text-white' : 'bg-overlay text-text-secondary hover:text-text'"
+                class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Presencial
+              </button>
+              <button
+                @click="editMode = 'remote'"
+                :class="editMode === 'remote' ? 'bg-accent text-white' : 'bg-overlay text-text-secondary hover:text-text'"
+                class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Remoto
               </button>
             </div>
             <div v-if="!editIsFullDay" class="flex gap-2">

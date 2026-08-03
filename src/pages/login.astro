@@ -4,6 +4,11 @@ import LoginForm from '../components/LoginForm.vue'
 ---
 
 <BaseLayout title="Iniciar sesión - Internship Tracker">
+  <script is:inline>
+    if (localStorage.getItem('auth_token')) {
+      window.location.replace('/dashboard')
+    }
+  </script>
   <div class="min-h-screen flex items-center justify-center px-4">
     <div class="w-full max-w-sm space-y-6">
       <div class="text-center">
