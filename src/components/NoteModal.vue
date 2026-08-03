@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import type { Note } from '../composables/useNotes'
+import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
 import DictationButton from './DictationButton.vue'
 
 const props = defineProps<{
@@ -14,19 +15,70 @@ const emit = defineEmits<{
   saved: [note: Note]
 }>()
 
+const { logEntries, fetchLogEntries } = useLogEntries()
+
 const content = ref('')
+const selectedLogEntryId = ref<number | null>(null)
+const noteDate = ref('')
+const activitySearch = ref('')
+const showDropdown = ref(false)
 const saving = ref(false)
 const saveError = ref('')
+
+const filteredActivities = computed(() => {
+  if (!activitySearch.value.trim()) return logEntries.value
+  const q = activitySearch.value.toLowerCase()
+  return logEntries.value.filter((e) => e.name.toLowerCase().includes(q))
+})
+
+const selectedActivityName = computed(() => {
+  if (!selectedLogEntryId.value) return ''
+  return logEntries.value.find((e) => e.id === selectedLogEntryId.value)?.name || ''
+})
+
+onMounted(() => {
+  fetchLogEntries()
+})
 
 watch(
   () => props.isOpen,
   (open) => {
     if (open) {
       content.value = props.note?.content || ''
+      selectedLogEntryId.value = props.logEntryId ?? props.note?.logEntryId ?? null
+      noteDate.value = props.note?.date ? props.note.date.slice(0, 16) : ''
+      activitySearch.value = selectedActivityName.value
       saveError.value = ''
+      showDropdown.value = false
     }
   }
 )
+
+const isFixedActivity = () => !!props.logEntryId && !props.note
+
+function selectActivity(entry: LogEntry | null) {
+  selectedLogEntryId.value = entry?.id ?? null
+  activitySearch.value = entry?.name || ''
+  showDropdown.value = false
+  if (entry?.datStart) {
+    noteDate.value = entry.datStart.slice(0, 16)
+  }
+}
+
+function onSearchFocus() {
+  showDropdown.value = true
+}
+
+function onSearchBlur() {
+  setTimeout(() => {
+    showDropdown.value = false
+    if (!selectedLogEntryId.value) {
+      activitySearch.value = ''
+    } else {
+      activitySearch.value = selectedActivityName.value
+    }
+  }, 200)
+}
 
 async function handleSubmit() {
   if (!content.value.trim()) {
@@ -43,11 +95,16 @@ async function handleSubmit() {
 
     let savedNote: Note
     if (props.note) {
-      savedNote = await updateNote(props.note.id, content.value.trim())
+      savedNote = await updateNote(props.note.id, {
+        content: content.value.trim(),
+        logEntryId: selectedLogEntryId.value,
+        date: noteDate.value || null,
+      })
     } else {
       savedNote = await createNote({
         content: content.value.trim(),
-        logEntryId: props.logEntryId ?? null,
+        logEntryId: selectedLogEntryId.value ?? null,
+        date: noteDate.value || null,
       })
     }
 
@@ -82,12 +139,15 @@ function appendTranscript(text: string) {
     <Transition name="modal">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm"
+        class="fixed inset-0 z-[60] overflow-y-auto bg-black/60 backdrop-blur-sm"
         @click="handleBackdropClick"
         @keydown="handleKeydown"
       >
         <div
-          class="bg-surface border border-border rounded-lg w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
+          class="min-h-full flex items-center justify-center p-4 sm:p-6"
+        >
+        <div
+          class="bg-surface border border-border rounded-lg w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col overflow-hidden my-auto"
           @click.stop
         >
           <div class="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
@@ -110,8 +170,62 @@ function appendTranscript(text: string) {
                 {{ saveError }}
               </div>
 
-              <div v-if="logEntryId && !note" class="bg-accent/10 border border-accent/20 text-accent text-sm rounded-md p-3">
+              <div v-if="isFixedActivity()" class="bg-accent/10 border border-accent/20 text-accent text-sm rounded-md p-3">
                 Esta nota se guardará como nota extra de la actividad.
+              </div>
+
+              <div v-if="!isFixedActivity()" class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-5">
+                <div class="space-y-1.5 min-w-0 relative">
+                  <label for="note-activity" class="block text-sm font-medium text-text">
+                    Actividad
+                  </label>
+                  <input
+                    id="note-activity"
+                    v-model="activitySearch"
+                    type="text"
+                    placeholder="Buscar actividad..."
+                    class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                    @focus="onSearchFocus"
+                    @blur="onSearchBlur"
+                  />
+                  <div
+                    v-if="showDropdown"
+                    class="absolute z-10 top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md shadow-lg max-h-40 overflow-y-auto"
+                  >
+                    <button
+                      type="button"
+                      @mousedown.prevent="selectActivity(null)"
+                      class="w-full text-left px-3 py-2 text-sm text-text-muted hover:bg-hover transition-colors"
+                    >
+                      Sin actividad
+                    </button>
+                    <button
+                      v-for="entry in filteredActivities"
+                      :key="entry.id"
+                      type="button"
+                      @mousedown.prevent="selectActivity(entry)"
+                      class="w-full text-left px-3 py-2 text-sm text-text hover:bg-hover transition-colors truncate"
+                      :class="{ 'bg-accent/10 text-accent': entry.id === selectedLogEntryId }"
+                    >
+                      {{ entry.name }}
+                    </button>
+                    <p v-if="filteredActivities.length === 0" class="px-3 py-2 text-xs text-text-muted">
+                      Sin resultados
+                    </p>
+                  </div>
+                </div>
+
+                <div class="space-y-1.5 min-w-0">
+                  <label for="note-date" class="block text-sm font-medium text-text">
+                    Fecha de la nota
+                  </label>
+                  <input
+                    id="note-date"
+                    v-model="noteDate"
+                    type="datetime-local"
+                    class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                  />
+                </div>
               </div>
 
               <div class="space-y-1.5 min-w-0">
@@ -148,6 +262,7 @@ function appendTranscript(text: string) {
               </button>
             </div>
           </form>
+        </div>
         </div>
       </div>
     </Transition>

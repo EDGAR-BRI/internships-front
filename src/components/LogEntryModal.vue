@@ -26,6 +26,23 @@ const resources = ref('')
 const showDetails = ref(false)
 const saving = ref(false)
 const saveError = ref('')
+const newNotes = ref<string[]>([''])
+
+function addNote() {
+  newNotes.value.push('')
+}
+
+function removeNote(index: number) {
+  newNotes.value.splice(index, 1)
+  if (newNotes.value.length === 0) {
+    newNotes.value.push('')
+  }
+}
+
+function appendNoteTranscript(index: number, text: string) {
+  const current = newNotes.value[index]
+  newNotes.value[index] = current ? `${current} ${text}` : text
+}
 
 function getTodayLocal(): string {
   const now = new Date()
@@ -70,6 +87,7 @@ watch(
         resources.value = ''
         showDetails.value = false
       }
+      newNotes.value = ['']
       saveError.value = ''
     }
   }
@@ -111,6 +129,17 @@ async function handleSubmit() {
       savedEntry = await updateLogEntry(props.entry.id, formData)
     } else {
       savedEntry = await createLogEntry(formData)
+
+      const notesToCreate = newNotes.value.filter((n) => n.trim())
+      if (notesToCreate.length > 0) {
+        const { useNotes } = await import('../composables/useNotes')
+        const { createNote } = useNotes()
+        await Promise.all(
+          notesToCreate.map((content) =>
+            createNote({ content: content.trim(), logEntryId: savedEntry.id, date: null })
+          )
+        )
+      }
     }
 
     emit('saved', savedEntry)
@@ -137,12 +166,15 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
     <Transition name="modal">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm"
+        class="fixed inset-0 z-[60] overflow-y-auto bg-black/60 backdrop-blur-sm"
         @click="handleBackdropClick"
         @keydown="handleKeydown"
       >
         <div
-          class="bg-surface border border-border rounded-lg w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
+          class="min-h-full flex items-center justify-center p-4 sm:p-6"
+        >
+        <div
+          class="bg-surface border border-border rounded-lg w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden my-auto"
           @click.stop
         >
           <div class="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
@@ -245,6 +277,48 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                     type="datetime-local"
                     class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
                   />
+                </div>
+              </div>
+
+              <div v-if="!entry" class="border-t border-border pt-4 space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="block text-sm font-medium text-text">
+                    Notas iniciales <span class="text-text-muted">(opcional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    @click="addNote"
+                    class="text-xs text-accent hover:text-accent-hover transition-colors font-medium"
+                  >
+                    + Agregar nota
+                  </button>
+                </div>
+                <p class="text-xs text-text-muted">Se guardarán como notas de la actividad</p>
+
+                <div
+                  v-for="(note, idx) in newNotes"
+                  :key="idx"
+                  class="flex items-start gap-2"
+                >
+                  <textarea
+                    v-model="newNotes[idx]"
+                    rows="2"
+                    placeholder="Escribe o dicta tu nota..."
+                    class="flex-1 min-w-0 box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none"
+                  ></textarea>
+                  <div class="flex flex-col gap-1 pt-1">
+                    <DictationButton @dictated="(t) => appendNoteTranscript(idx, t)" />
+                    <button
+                      type="button"
+                      @click="removeNote(idx)"
+                      class="text-text-muted hover:text-error transition-colors p-1"
+                      title="Eliminar nota"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -353,6 +427,7 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
               </button>
             </div>
           </form>
+        </div>
         </div>
       </div>
     </Transition>
