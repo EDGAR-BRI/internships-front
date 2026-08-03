@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import SettingsModal from './SettingsModal.vue'
 import NoteModal from './NoteModal.vue'
@@ -7,6 +7,15 @@ import NoteModal from './NoteModal.vue'
 const { user, isAuthenticated, logout, restoreSession } = useAuth()
 
 const noteModalOpen = ref(false)
+
+const initials = computed(() => {
+  const name = user.value?.fullName || user.value?.email || ''
+  const [first, last] = name.split(' ')
+  if (first && last) {
+    return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase()
+  }
+  return first.slice(0, 2).toUpperCase()
+})
 
 // Restaurar sesión lo antes posible (en el cliente al hidratar)
 if (typeof window !== 'undefined') {
@@ -71,9 +80,23 @@ function isActive(path: string): boolean {
               Admin
             </a>
             <div class="flex items-center gap-3">
-              <span class="text-text-secondary text-sm">
-                {{ user?.fullName || user?.email }}
-              </span>
+              <div class="flex items-center gap-2.5">
+                <div
+                  v-if="user?.avatarUrl"
+                  class="w-8 h-8 rounded-full overflow-hidden ring-2 ring-accent/30 shrink-0"
+                >
+                  <img :src="user.avatarUrl" :alt="user?.fullName || 'Avatar'" class="w-full h-full object-cover" />
+                </div>
+                <div
+                  v-else
+                  class="w-8 h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center text-xs font-semibold ring-2 ring-accent/30 shrink-0"
+                >
+                  {{ initials }}
+                </div>
+                <span class="text-text-secondary text-sm">
+                  {{ user?.fullName || user?.email }}
+                </span>
+              </div>
               <button
                 @click="handleLogout"
                 class="bg-overlay hover:bg-hover text-text-muted hover:text-error text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
@@ -102,9 +125,23 @@ function isActive(path: string): boolean {
           >
             Admin
           </a>
-          <span class="text-text-muted text-xs truncate max-w-[40%] text-right">
-            {{ user?.fullName || user?.email }}
-          </span>
+          <div class="flex items-center gap-2">
+            <div
+              v-if="user?.avatarUrl"
+              class="w-7 h-7 rounded-full overflow-hidden ring-2 ring-accent/30 shrink-0"
+            >
+              <img :src="user.avatarUrl" :alt="user?.fullName || 'Avatar'" class="w-full h-full object-cover" />
+            </div>
+            <div
+              v-else
+              class="w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center text-[10px] font-semibold ring-2 ring-accent/30 shrink-0"
+            >
+              {{ initials }}
+            </div>
+            <span class="text-text-muted text-xs truncate max-w-[40%] text-right">
+              {{ user?.fullName || user?.email }}
+            </span>
+          </div>
         </div>
       </div>
     </header>

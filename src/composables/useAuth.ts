@@ -6,6 +6,8 @@ interface User {
   fullName: string | null
   email: string
   role: string
+  avatarUrl: string | null
+  initials?: string
 }
 
 const user = ref<User | null>(null)
