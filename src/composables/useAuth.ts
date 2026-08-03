@@ -5,6 +5,7 @@ interface User {
   id: number
   fullName: string | null
   email: string
+  role: string
 }
 
 const user = ref<User | null>(null)

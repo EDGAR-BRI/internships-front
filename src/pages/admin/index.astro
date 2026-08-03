@@ -1,0 +1,14 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro'
+import AuthGuard from '../../components/AuthGuard.vue'
+import AdminGuard from '../../components/AdminGuard.vue'
+import AdminView from '../../components/AdminView.vue'
+---
+
+<AuthLayout title="Administración - Internship Tracker">
+  <AuthGuard client:load>
+    <AdminGuard client:load>
+      <AdminView client:load />
+    </AdminGuard>
+  </AuthGuard>
+</AuthLayout>

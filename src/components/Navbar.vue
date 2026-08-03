@@ -62,6 +62,14 @@ function isActive(path: string): boolean {
             >
               Asistencia
             </a>
+            <a
+              v-if="user?.role === 'admin'"
+              href="/admin"
+              class="text-sm transition-colors"
+              :class="isActive('/admin') ? 'text-accent font-medium' : 'text-text-secondary hover:text-text'"
+            >
+              Admin
+            </a>
             <div class="flex items-center gap-3">
               <span class="text-text-secondary text-sm">
                 {{ user?.fullName || user?.email }}
@@ -85,9 +93,19 @@ function isActive(path: string): boolean {
         <a href="/" class="text-text font-semibold tracking-tight text-sm">
           Internship<span class="text-accent">Tracker</span>
         </a>
-        <span class="text-text-muted text-xs truncate max-w-[50%] text-right">
-          {{ user?.fullName || user?.email }}
-        </span>
+        <div class="flex items-center gap-3">
+          <a
+            v-if="user?.role === 'admin'"
+            href="/admin"
+            class="text-xs font-medium transition-colors"
+            :class="isActive('/admin') ? 'text-accent' : 'text-text-muted'"
+          >
+            Admin
+          </a>
+          <span class="text-text-muted text-xs truncate max-w-[40%] text-right">
+            {{ user?.fullName || user?.email }}
+          </span>
+        </div>
       </div>
     </header>
 
