@@ -1,5 +1,14 @@
+function parseDate(dateStr: string): Date {
+  const parts = dateStr.slice(0, 10).split('-').map(Number)
+  if (parts.length !== 3 || parts.some((n) => isNaN(n))) {
+    return new Date(dateStr)
+  }
+  const [y, m, d] = parts
+  return new Date(y, m - 1, d)
+}
+
 function mondayOf(dateStr: string): Date {
-  const d = new Date(dateStr)
+  const d = parseDate(dateStr)
   const day = d.getDay()
   const diff = day === 0 ? -6 : 1 - day
   const monday = new Date(d)
