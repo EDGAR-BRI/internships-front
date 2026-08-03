@@ -38,7 +38,7 @@ async function handleLogout() {
             </span>
             <button
               @click="handleLogout"
-              class="text-text-muted hover:text-text text-sm transition-colors"
+              class="bg-overlay hover:bg-hover text-text-muted hover:text-error text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
             >
               Salir
             </button>

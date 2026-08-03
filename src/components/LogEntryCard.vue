@@ -31,10 +31,16 @@ const statusLabels: Record<string, string> = {
   done: 'Terminada',
 }
 
-const statusStyles: Record<string, { bg: string; text: string; border: string }> = {
-  pending: { bg: 'rgba(135,135,135,0.15)', text: '#a1a1a1', border: '#878787' },
-  in_progress: { bg: 'rgba(245,166,35,0.15)', text: '#f5a623', border: '#f5a623' },
-  done: { bg: 'rgba(0,112,243,0.15)', text: '#0070f3', border: '#0070f3' },
+const statusPillClasses: Record<string, string> = {
+  pending: 'bg-neutral-500/15 text-neutral-400',
+  in_progress: 'bg-warning/15 text-warning',
+  done: 'bg-accent/15 text-accent',
+}
+
+const statusBorderClasses: Record<string, string> = {
+  pending: 'border-l-neutral-500',
+  in_progress: 'border-l-warning',
+  done: 'border-l-accent',
 }
 
 const statusCycle: Record<string, LogEntry['status']> = {
@@ -79,8 +85,8 @@ const hasDetails = computed(
 
 <template>
   <div
-    class="bg-surface border border-border rounded-lg p-4 transition-colors hover:border-border-strong"
-    :style="{ borderLeftWidth: '3px', borderLeftColor: statusStyles[entry.status]?.border || '#878787' }"
+    class="bg-surface border border-border border-l-[3px] rounded-lg p-4 transition-colors hover:border-border-strong"
+    :class="statusBorderClasses[entry.status] || 'border-l-neutral-500'"
   >
     <div class="flex items-start justify-between gap-3">
       <div class="flex-1 min-w-0">
@@ -90,7 +96,9 @@ const hasDetails = computed(
             class="flex-shrink-0 w-4 h-4 rounded border transition-colors"
             :class="entry.status === 'done'
               ? 'bg-accent border-accent'
-              : 'border-border-strong hover:border-accent'"
+              : entry.status === 'in_progress'
+                ? 'bg-warning/10 border-warning/60 hover:border-warning'
+                : 'bg-neutral-500/10 border-neutral-500/60 hover:border-neutral-400'"
             :title="`Cambiar estado: ${statusLabels[entry.status]}`"
           >
             <svg
@@ -114,10 +122,7 @@ const hasDetails = computed(
         <div class="flex items-center gap-2 ml-6 flex-wrap">
           <span
             class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
-            :style="{
-              backgroundColor: statusStyles[entry.status]?.bg || 'rgba(135,135,135,0.15)',
-              color: statusStyles[entry.status]?.text || '#a1a1a1'
-            }"
+            :class="statusPillClasses[entry.status] || 'bg-neutral-500/15 text-neutral-400'"
           >
             {{ statusLabels[entry.status] }}
           </span>

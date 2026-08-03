@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
 import { useNotes, type Note } from '../composables/useNotes'
 import LogEntryCard from './LogEntryCard.vue'
-import LogEntryModal from './LogEntryModal.vue'
-import NoteModal from './NoteModal.vue'
+
+const LogEntryModal = defineAsyncComponent(() => import('./LogEntryModal.vue'))
+const NoteModal = defineAsyncComponent(() => import('./NoteModal.vue'))
 
 const { logEntries, loading, error, fetchLogEntries, deleteLogEntry, updateLogEntry } = useLogEntries()
 const { deleteNote } = useNotes()
@@ -44,6 +45,12 @@ onMounted(() => {
 function openCreateModal() {
   editingEntry.value = null
   showModal.value = true
+}
+
+function openCreateNote() {
+  editingNote.value = null
+  noteTargetEntry.value = null
+  noteModalOpen.value = true
 }
 
 function openEditModal(entry: LogEntry) {
@@ -101,38 +108,48 @@ async function handleDeleteNote(id: number) {
   <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <h1 class="text-2xl font-semibold tracking-tight">Actividades</h1>
-      <button
-        @click="openCreateModal"
-        class="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 flex items-center justify-center gap-2 w-full sm:w-auto"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Nueva actividad
-      </button>
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <button
+          @click="openCreateNote"
+          class="bg-overlay hover:bg-hover text-text-secondary hover:text-text px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 flex items-center justify-center gap-2 flex-1 sm:flex-none"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
+          Nueva nota
+        </button>
+        <button
+          @click="openCreateModal"
+          class="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 flex items-center justify-center gap-2 flex-1 sm:flex-none"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Nueva actividad
+        </button>
+      </div>
     </div>
 
-    <div class="flex items-center gap-1 border-b border-border overflow-x-auto">
+    <div class="flex items-center gap-1.5 border-b border-border overflow-x-auto pb-2">
       <button
         v-for="filter in filters"
         :key="filter.value"
         @click="activeFilter = filter.value"
-        class="px-3 py-2 text-sm font-medium transition-colors relative whitespace-nowrap"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap"
         :class="activeFilter === filter.value
-          ? 'text-text'
-          : 'text-text-muted hover:text-text-secondary'"
+          ? 'bg-accent text-white'
+          : 'bg-overlay text-text-muted hover:text-text-secondary hover:bg-hover'"
       >
         {{ filter.label }}
         <span
           v-if="entryCounts[filter.value] > 0"
-          class="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-overlay"
+          class="text-[10px] px-1.5 py-0.5 rounded-full"
+          :class="activeFilter === filter.value
+            ? 'bg-black/25 text-white'
+            : 'bg-canvas/60 text-text-secondary'"
         >
           {{ entryCounts[filter.value] }}
         </span>
-        <div
-          v-if="activeFilter === filter.value"
-          class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
-        ></div>
       </button>
     </div>
 
