@@ -25,6 +25,9 @@ export interface AttendanceSummary {
   remainingHours: number
   onSiteDays: number
   remoteDays: number
+  totalWeeks: number
+  completedWeeks: number
+  remainingWeeks: number
   targetEndDate: string | null
   estimatedEndDate: string | null
   pace: {

@@ -10,6 +10,7 @@ export interface UserSettings {
   skippedWeeks: number[] | null
   workType: 'full' | 'partial' | null
   workHoursPerDay: number | null
+  daysPerWeek: number | null
 }
 
 const settings = ref<UserSettings | null>(null)

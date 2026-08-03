@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAttendances, type Attendance } from '../composables/useAttendances'
 import { useSettings } from '../composables/useSettings'
 import { computeWeek } from '../utils/week'
+import AttendanceCalendar from './AttendanceCalendar.vue'
 import AttendanceEditModal from './AttendanceEditModal.vue'
 
 const {
@@ -34,6 +35,8 @@ const attendanceMode = ref<'on_site' | 'remote'>('on_site')
 
 const editTarget = ref<Attendance | null>(null)
 const editModalOpen = ref(false)
+
+const historyView = ref<'list' | 'calendar'>('list')
 
 const deleteId = ref<number | null>(null)
 const deleteConfirmText = ref('')
@@ -86,6 +89,11 @@ const daysProgress = computed(() => {
 const hoursProgress = computed(() => {
   if (!summary.value) return 0
   return Math.min((summary.value.completedHours / summary.value.totalHours) * 100, 100)
+})
+
+const weeksProgress = computed(() => {
+  if (!summary.value || !summary.value.totalWeeks) return 0
+  return Math.min((summary.value.completedWeeks / summary.value.totalWeeks) * 100, 100)
 })
 
 const currentDayName = computed(() => {
@@ -228,6 +236,11 @@ onMounted(() => {
   fetchAttendances()
   fetchSummary()
   fetchSettings()
+  window.addEventListener('settings-saved', fetchSummary)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('settings-saved', fetchSummary)
 })
 </script>
 
@@ -273,6 +286,10 @@ onMounted(() => {
           </p>
         </div>
         <div>
+          <p class="text-xs text-text-muted">Días por semana</p>
+          <p class="text-text font-medium">{{ settings.daysPerWeek ?? 5 }}</p>
+        </div>
+        <div>
           <p class="text-xs text-text-muted">Semanas omitidas</p>
           <p class="text-text font-medium">{{ settings.skippedWeeks?.join(', ') || 'Ninguna' }}</p>
         </div>
@@ -312,6 +329,20 @@ onMounted(() => {
         </div>
         <p class="text-xs text-text-muted">
           Te faltan <span class="text-text font-medium">{{ summary.remainingHours }}h</span>
+        </p>
+      </div>
+
+      <!-- Semanas -->
+      <div class="bg-surface border border-border rounded-lg p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-text-secondary">Semanas de trabajo</span>
+          <span class="text-sm font-semibold text-text">{{ summary.completedWeeks }} / {{ summary.totalWeeks }}</span>
+        </div>
+        <div class="h-2 bg-overlay rounded-full overflow-hidden">
+          <div class="h-full bg-accent rounded-full transition-all" :style="{ width: weeksProgress + '%' }"></div>
+        </div>
+        <p class="text-xs text-text-muted">
+          Te faltan <span class="text-text font-medium">{{ summary.remainingWeeks }} semanas</span>
         </p>
       </div>
 
@@ -463,7 +494,34 @@ onMounted(() => {
 
     <!-- Lista reciente -->
     <div class="space-y-3">
-      <h2 class="text-sm font-semibold text-text">Historial reciente</h2>
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-text">Historial</h2>
+        <div class="flex items-center gap-1 bg-overlay border border-border rounded-md p-0.5">
+          <button
+            @click="historyView = 'list'"
+            class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
+            :class="historyView === 'list' ? 'bg-accent text-white' : 'text-text-muted hover:text-text'"
+          >
+            Lista
+          </button>
+          <button
+            @click="historyView = 'calendar'"
+            class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
+            :class="historyView === 'calendar' ? 'bg-accent text-white' : 'text-text-muted hover:text-text'"
+          >
+            Calendario
+          </button>
+        </div>
+      </div>
+
+      <AttendanceCalendar
+        v-if="historyView === 'calendar'"
+        :attendances="attendances"
+        :settings="settings"
+        :summary="summary"
+      />
+
+      <template v-if="historyView === 'list'">
       <div v-if="loading" class="text-sm text-text-muted">Cargando...</div>
       <div v-else-if="attendances.length === 0" class="text-sm text-text-muted">
         No hay asistencias registradas.
@@ -528,6 +586,7 @@ onMounted(() => {
 
         </div>
       </div>
+      </template>
     </div>
 
     <!-- Modal de confirmación para eliminar -->

@@ -15,6 +15,7 @@ const endDate = ref('')
 const skippedWeeksInput = ref('')
 const workType = ref<'full' | 'partial' | ''>('')
 const workHoursPerDay = ref<number | ''>('')
+const daysPerWeek = ref<number | ''>('')
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref(false)
@@ -27,6 +28,7 @@ onMounted(async () => {
     skippedWeeksInput.value = settings.value.skippedWeeks?.join(', ') || ''
     workType.value = settings.value.workType || ''
     workHoursPerDay.value = settings.value.workHoursPerDay ?? ''
+    daysPerWeek.value = settings.value.daysPerWeek ?? 5
   }
 })
 
@@ -68,6 +70,7 @@ async function handleSubmit() {
     } else {
       payload.workHoursPerDay = 8
     }
+    payload.daysPerWeek = Number(daysPerWeek.value) || 5
     await updateSettings(payload)
 
     await fetchLogEntries()
@@ -178,6 +181,22 @@ async function handleSubmit() {
         class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
       />
       <p class="text-xs text-text-muted">Cantidad de horas por defecto de tu jornada parcial. Se usa para calcular el total y se pre-llena en el registro de asistencia.</p>
+    </div>
+
+    <div class="space-y-1.5">
+      <label for="days-per-week" class="block text-sm font-medium text-text">
+        Días de trabajo por semana
+      </label>
+      <input
+        id="days-per-week"
+        v-model.number="daysPerWeek"
+        type="number"
+        min="1"
+        max="7"
+        placeholder="Ej. 5"
+        class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+      />
+      <p class="text-xs text-text-muted">Cuántos días trabajas a la semana. Se usa para calcular la fecha de fin estimada.</p>
     </div>
 
     <button

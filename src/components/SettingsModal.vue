@@ -12,6 +12,11 @@ function close() {
   isOpen.value = false
 }
 
+function handleSaved() {
+  close()
+  window.dispatchEvent(new CustomEvent('settings-saved'))
+}
+
 onMounted(() => {
   window.addEventListener('open-settings-modal', open)
 })
@@ -46,7 +51,7 @@ onUnmounted(() => {
               </button>
             </div>
             <div class="overflow-y-auto p-4 sm:p-6">
-              <SettingsForm @saved="close" />
+              <SettingsForm @saved="handleSaved" />
             </div>
           </div>
         </div>
