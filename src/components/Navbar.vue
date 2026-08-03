@@ -29,6 +29,9 @@ async function handleLogout() {
           <a href="/dashboard" class="text-text-secondary hover:text-text text-sm transition-colors">
             Dashboard
           </a>
+          <a href="/bitacora" class="text-text-secondary hover:text-text text-sm transition-colors">
+            Bitácora
+          </a>
           <div class="flex items-center gap-3">
             <span class="text-text-secondary text-sm">
               {{ user?.fullName || user?.email }}

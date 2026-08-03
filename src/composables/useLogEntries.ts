@@ -7,8 +7,11 @@ export interface LogEntry {
   userId: number
   name: string
   status: 'pending' | 'in_progress' | 'done'
+  week: number | null
+  area: string | null
   theory: string | null
   attitudes: string | null
+  impact: string | null
   resources: string | null
   datStart: string
   datEnd: string | null
@@ -19,8 +22,11 @@ export interface LogEntry {
 export interface LogEntryFormData {
   name: string
   status: 'pending' | 'in_progress' | 'done'
+  week: number | null
+  area: string | null
   theory: string | null
   attitudes: string | null
+  impact: string | null
   resources: string | null
   datStart: string
   datEnd: string | null

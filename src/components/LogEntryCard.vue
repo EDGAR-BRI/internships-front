@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { LogEntry } from '../composables/useLogEntries'
+import { useNotes, type Note } from '../composables/useNotes'
+import NoteCard from './NoteCard.vue'
 
 const props = defineProps<{
   entry: LogEntry
@@ -10,10 +12,18 @@ const emit = defineEmits<{
   edit: [entry: LogEntry]
   delete: [id: number]
   statusChange: [id: number, status: LogEntry['status']]
+  addNote: [entry: LogEntry]
+  editNote: [note: Note]
+  deleteNote: [id: number]
 }>()
+
+const { notes } = useNotes()
 
 const deleting = ref(false)
 const showDetails = ref(false)
+const showNotes = ref(false)
+
+const activityNotes = computed(() => notes.value.filter((n) => n.logEntryId === props.entry.id))
 
 const statusLabels: Record<string, string> = {
   pending: 'Pendiente',
@@ -56,7 +66,15 @@ function handleStatusToggle() {
   emit('statusChange', props.entry.id, newStatus)
 }
 
-const hasDetails = props.entry.theory || props.entry.attitudes || props.entry.resources
+const hasDetails = computed(
+  () =>
+    props.entry.theory ||
+    props.entry.attitudes ||
+    props.entry.impact ||
+    props.entry.resources ||
+    props.entry.week ||
+    props.entry.area
+)
 </script>
 
 <template>
@@ -102,6 +120,20 @@ const hasDetails = props.entry.theory || props.entry.attitudes || props.entry.re
             }"
           >
             {{ statusLabels[entry.status] }}
+          </span>
+
+          <span v-if="entry.week" class="inline-flex items-center text-[10px] gap-1 text-text-muted">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            Semana {{ entry.week }}
+          </span>
+
+          <span v-if="entry.area" class="inline-flex items-center text-[10px] gap-1 text-text-muted">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2m-6 0V9a2 2 0 00-2-2h-2a2 2 0 00-2 2v12" />
+            </svg>
+            {{ entry.area }}
           </span>
 
           <span v-if="entry.datStart" class="inline-flex items-center text-[10px] gap-1 text-text-muted">
@@ -157,20 +189,76 @@ const hasDetails = props.entry.theory || props.entry.attitudes || props.entry.re
 
     <Transition name="expand">
       <div v-if="showDetails && hasDetails" class="mt-3 ml-6 space-y-2">
+        <div v-if="entry.week" class="text-xs">
+          <span class="font-medium text-text-secondary">Semana:</span>
+          <p class="text-text-muted mt-0.5">{{ entry.week }}</p>
+        </div>
+        <div v-if="entry.area" class="text-xs">
+          <span class="font-medium text-text-secondary">Área/Departamento:</span>
+          <p class="text-text-muted mt-0.5">{{ entry.area }}</p>
+        </div>
         <div v-if="entry.theory" class="text-xs">
           <span class="font-medium text-text-secondary">Teoría:</span>
           <p class="text-text-muted mt-0.5 whitespace-pre-wrap">{{ entry.theory }}</p>
         </div>
         <div v-if="entry.attitudes" class="text-xs">
-          <span class="font-medium text-text-secondary">Actitudes:</span>
+          <span class="font-medium text-text-secondary">Nuevos aprendizajes:</span>
           <p class="text-text-muted mt-0.5 whitespace-pre-wrap">{{ entry.attitudes }}</p>
         </div>
+        <div v-if="entry.impact" class="text-xs">
+          <span class="font-medium text-text-secondary">Impacto:</span>
+          <p class="text-text-muted mt-0.5 whitespace-pre-wrap">{{ entry.impact }}</p>
+        </div>
         <div v-if="entry.resources" class="text-xs">
-          <span class="font-medium text-text-secondary">Recursos:</span>
+          <span class="font-medium text-text-secondary">Otros elementos:</span>
           <p class="text-text-muted mt-0.5 whitespace-pre-wrap">{{ entry.resources }}</p>
         </div>
       </div>
     </Transition>
+
+    <div class="mt-3 ml-6 border-t border-border pt-2">
+      <div class="flex items-center gap-2">
+        <button
+          @click="showNotes = !showNotes"
+          class="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text transition-colors py-1"
+        >
+          <svg
+            class="w-3.5 h-3.5 transition-transform duration-200"
+            :class="{ 'rotate-90': showNotes }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+          Notas
+          <span v-if="activityNotes.length" class="text-[10px] px-1.5 py-0.5 rounded-full bg-overlay">
+            {{ activityNotes.length }}
+          </span>
+        </button>
+        <button
+          @click="emit('addNote', entry)"
+          class="text-xs text-accent hover:text-accent-hover transition-colors py-1"
+        >
+          + Agregar nota
+        </button>
+      </div>
+
+      <Transition name="expand">
+        <div v-if="showNotes" class="mt-2 space-y-2">
+          <p v-if="activityNotes.length === 0" class="text-xs text-text-muted">
+            Sin notas para esta actividad.
+          </p>
+          <NoteCard
+            v-for="note in activityNotes"
+            :key="note.id"
+            :note="note"
+            @edit="emit('editNote', $event)"
+            @delete="emit('deleteNote', $event)"
+          />
+        </div>
+      </Transition>
+    </div>
   </div>
 </template>
 

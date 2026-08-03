@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
+import { useNotes, type Note } from '../composables/useNotes'
 import LogEntryCard from './LogEntryCard.vue'
 import LogEntryModal from './LogEntryModal.vue'
+import NoteModal from './NoteModal.vue'
 
 const { logEntries, loading, error, fetchLogEntries, deleteLogEntry, updateLogEntry } = useLogEntries()
+const { deleteNote } = useNotes()
 
 const showModal = ref(false)
 const editingEntry = ref<LogEntry | null>(null)
 const activeFilter = ref<'all' | LogEntry['status']>('all')
 const confirmDeleteId = ref<number | null>(null)
+
+const noteModalOpen = ref(false)
+const noteTargetEntry = ref<LogEntry | null>(null)
+const editingNote = ref<Note | null>(null)
 
 const filters: { value: 'all' | LogEntry['status']; label: string }[] = [
   { value: 'all', label: 'Todas' },
@@ -65,6 +72,28 @@ async function handleDelete(id: number) {
 
 async function handleStatusChange(id: number, status: LogEntry['status']) {
   await updateLogEntry(id, { status })
+}
+
+function openAddNote(entry: LogEntry) {
+  editingNote.value = null
+  noteTargetEntry.value = entry
+  noteModalOpen.value = true
+}
+
+function openEditNote(note: Note) {
+  editingNote.value = note
+  noteTargetEntry.value = null
+  noteModalOpen.value = true
+}
+
+function closeNoteModal() {
+  noteModalOpen.value = false
+  noteTargetEntry.value = null
+  editingNote.value = null
+}
+
+async function handleDeleteNote(id: number) {
+  await deleteNote(id)
 }
 </script>
 
@@ -136,6 +165,9 @@ async function handleStatusChange(id: number, status: LogEntry['status']) {
         @edit="openEditModal"
         @delete="handleDelete"
         @status-change="handleStatusChange"
+        @add-note="openAddNote"
+        @edit-note="openEditNote"
+        @delete-note="handleDeleteNote"
       />
     </div>
 
@@ -144,6 +176,14 @@ async function handleStatusChange(id: number, status: LogEntry['status']) {
       :entry="editingEntry"
       @close="closeModal"
       @saved="closeModal"
+    />
+
+    <NoteModal
+      :is-open="noteModalOpen"
+      :note="editingNote"
+      :log-entry-id="noteTargetEntry?.id ?? null"
+      @close="closeNoteModal"
+      @saved="closeNoteModal"
     />
   </div>
 </template>

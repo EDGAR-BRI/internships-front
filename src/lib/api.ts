@@ -64,7 +64,6 @@ export async function apiFetch<T = any>(path: string, options: ApiOptions = {}):
     const res = await fetch(`${API_BASE}${path}`, {
       method,
       headers,
-      credentials: 'include',
       body: body ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     })

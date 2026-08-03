@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import type { LogEntry, LogEntryFormData } from '../composables/useLogEntries'
+import DictationButton from './DictationButton.vue'
 
 const props = defineProps<{
   entry?: LogEntry | null
@@ -14,10 +15,13 @@ const emit = defineEmits<{
 
 const name = ref('')
 const status = ref<'pending' | 'in_progress' | 'done'>('pending')
+const week = ref<number | null>(null)
+const area = ref('')
 const datStart = ref('')
 const datEnd = ref('')
 const theory = ref('')
 const attitudes = ref('')
+const impact = ref('')
 const resources = ref('')
 const showDetails = ref(false)
 const saving = ref(false)
@@ -37,19 +41,32 @@ watch(
       if (props.entry) {
         name.value = props.entry.name
         status.value = props.entry.status
+        week.value = props.entry.week
+        area.value = props.entry.area || ''
         datStart.value = props.entry.datStart ? props.entry.datStart.slice(0, 16) : ''
         datEnd.value = props.entry.datEnd ? props.entry.datEnd.slice(0, 16) : ''
         theory.value = props.entry.theory || ''
         attitudes.value = props.entry.attitudes || ''
+        impact.value = props.entry.impact || ''
         resources.value = props.entry.resources || ''
-        showDetails.value = !!(props.entry.theory || props.entry.attitudes || props.entry.resources)
+        showDetails.value = !!(
+          props.entry.theory ||
+          props.entry.attitudes ||
+          props.entry.impact ||
+          props.entry.resources ||
+          props.entry.week ||
+          props.entry.area
+        )
       } else {
         name.value = ''
         status.value = 'pending'
+        week.value = null
+        area.value = ''
         datStart.value = getTodayLocal()
         datEnd.value = ''
         theory.value = ''
         attitudes.value = ''
+        impact.value = ''
         resources.value = ''
         showDetails.value = false
       }
@@ -79,10 +96,13 @@ async function handleSubmit() {
     const formData: LogEntryFormData = {
       name: name.value.trim(),
       status: status.value,
+      week: typeof week.value === 'number' ? week.value : null,
+      area: area.value.trim() || null,
       datStart: datStart.value,
       datEnd: datEnd.value || null,
       theory: theory.value.trim() || null,
       attitudes: attitudes.value.trim() || null,
+      impact: impact.value.trim() || null,
       resources: resources.value.trim() || null,
     }
 
@@ -102,16 +122,13 @@ async function handleSubmit() {
   }
 }
 
-function handleBackdropClick(e: MouseEvent) {
-  if (e.target === e.currentTarget) {
-    emit('close')
-  }
-}
-
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    emit('close')
-  }
+function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources', text: string) {
+  const current = field === 'theory' ? theory.value : field === 'attitudes' ? attitudes.value : field === 'impact' ? impact.value : resources.value
+  const next = current ? `${current} ${text}` : text
+  if (field === 'theory') theory.value = next
+  else if (field === 'attitudes') attitudes.value = next
+  else if (field === 'impact') impact.value = next
+  else resources.value = next
 }
 </script>
 
@@ -178,6 +195,35 @@ function handleKeydown(e: KeyboardEvent) {
 
               <div class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-3">
                 <div class="space-y-1 min-w-0">
+                  <label for="log-entry-week" class="block text-xs font-medium text-text-secondary">
+                    Semana #
+                  </label>
+                  <input
+                    id="log-entry-week"
+                    v-model.number="week"
+                    type="number"
+                    min="1"
+                    placeholder="Ej. 3"
+                    class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                  />
+                </div>
+
+                <div class="space-y-1 min-w-0">
+                  <label for="log-entry-area" class="block text-xs font-medium text-text-secondary">
+                    Área / Departamento
+                  </label>
+                  <input
+                    id="log-entry-area"
+                    v-model="area"
+                    type="text"
+                    placeholder="Ej. Desarrollo"
+                    class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                  />
+                </div>
+              </div>
+
+              <div class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-3">
+                <div class="space-y-1 min-w-0">
                   <label for="log-entry-dat-start" class="block text-xs font-medium text-text-secondary">
                     Inicio <span class="text-error">*</span>
                   </label>
@@ -223,40 +269,65 @@ function handleKeydown(e: KeyboardEvent) {
                 <Transition name="expand">
                   <div v-if="showDetails" class="mt-2 space-y-3 min-w-0">
                     <div class="space-y-1 min-w-0">
-                      <label for="log-entry-theory" class="block text-xs font-medium text-text-secondary">
-                        Teoría
-                      </label>
+                      <div class="flex items-center justify-between gap-2">
+                        <label for="log-entry-theory" class="block text-xs font-medium text-text-secondary">
+                          Teorías
+                        </label>
+                        <DictationButton @dictated="(t) => appendTranscript('theory', t)" />
+                      </div>
                       <textarea
                         id="log-entry-theory"
                         v-model="theory"
                         rows="2"
-                        placeholder="Teoría relacionada"
+                        placeholder="Teorías aprendidas en tus estudios que aplicaste"
                         class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
                       ></textarea>
                     </div>
 
                     <div class="space-y-1 min-w-0">
-                      <label for="log-entry-attitudes" class="block text-xs font-medium text-text-secondary">
-                        Actitudes
-                      </label>
+                      <div class="flex items-center justify-between gap-2">
+                        <label for="log-entry-attitudes" class="block text-xs font-medium text-text-secondary">
+                          Nuevos aprendizajes
+                        </label>
+                        <DictationButton @dictated="(t) => appendTranscript('attitudes', t)" />
+                      </div>
                       <textarea
                         id="log-entry-attitudes"
                         v-model="attitudes"
                         rows="2"
-                        placeholder="Actitudes desarrolladas"
+                        placeholder="Conocimientos o habilidades prácticas aprendidas"
                         class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
                       ></textarea>
                     </div>
 
                     <div class="space-y-1 min-w-0">
-                      <label for="log-entry-resources" class="block text-xs font-medium text-text-secondary">
-                        Recursos
-                      </label>
+                      <div class="flex items-center justify-between gap-2">
+                        <label for="log-entry-impact" class="block text-xs font-medium text-text-secondary">
+                          Impacto
+                        </label>
+                        <DictationButton @dictated="(t) => appendTranscript('impact', t)" />
+                      </div>
+                      <textarea
+                        id="log-entry-impact"
+                        v-model="impact"
+                        rows="2"
+                        placeholder="¿Qué te impresionó o impactó?"
+                        class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
+                      ></textarea>
+                    </div>
+
+                    <div class="space-y-1 min-w-0">
+                      <div class="flex items-center justify-between gap-2">
+                        <label for="log-entry-resources" class="block text-xs font-medium text-text-secondary">
+                          Otros elementos a considerar
+                        </label>
+                        <DictationButton @dictated="(t) => appendTranscript('resources', t)" />
+                      </div>
                       <textarea
                         id="log-entry-resources"
                         v-model="resources"
                         rows="2"
-                        placeholder="Recursos utilizados"
+                        placeholder="Otros elementos o recursos"
                         class="w-full bg-overlay border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0"
                       ></textarea>
                     </div>
