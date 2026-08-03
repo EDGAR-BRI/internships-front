@@ -36,6 +36,21 @@ export function useSpeechRecognition() {
 
   let recognition: SpeechRecognitionLike | null = null
 
+  const recentFinalTexts: string[] = []
+  const RECENT_LIMIT = 3
+
+  function isDuplicate(text: string): boolean {
+    const index = recentFinalTexts.indexOf(text)
+    if (index !== -1) {
+      recentFinalTexts.splice(index, 1)
+      recentFinalTexts.push(text)
+      return true
+    }
+    recentFinalTexts.push(text)
+    if (recentFinalTexts.length > RECENT_LIMIT) recentFinalTexts.shift()
+    return false
+  }
+
   function startListening(options: DictateOptions) {
     const Ctor = getRecognitionCtor()
     if (!Ctor) {
@@ -60,7 +75,7 @@ export function useSpeechRecognition() {
         const result = event.results[i]
         if (result.isFinal) {
           const text = result[0]?.transcript?.trim()
-          if (text && options.onFinal) options.onFinal(text)
+          if (text && !isDuplicate(text) && options.onFinal) options.onFinal(text)
         }
       }
     }
