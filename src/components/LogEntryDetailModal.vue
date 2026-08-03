@@ -241,10 +241,10 @@ function handleBackdropClick(e: MouseEvent) {
           </div>
 
           <!-- Footer actions -->
-          <div class="flex items-center justify-between gap-3 p-6 border-t border-border">
+          <div class="flex flex-wrap items-center justify-between gap-3 p-6 border-t border-border">
             <button
               @click="handleStatusToggle"
-              class="flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
+              class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
               :class="entry.status === 'done'
                 ? 'bg-accent border-accent text-white'
                 : entry.status === 'in_progress'
@@ -281,22 +281,22 @@ function handleBackdropClick(e: MouseEvent) {
               {{ statusLabels[entry.status] }}
             </button>
 
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
               <button
                 @click="emit('addNote', entry)"
-                class="px-4 py-2 rounded-lg text-sm font-medium text-accent hover:text-accent-hover hover:bg-accent/10 transition-colors"
+                class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium text-accent hover:text-accent-hover hover:bg-accent/10 transition-colors"
               >
                 + Nota
               </button>
               <button
                 @click="emit('edit', entry)"
-                class="px-4 py-2 rounded-lg text-sm font-medium bg-overlay hover:bg-hover text-text-secondary hover:text-text transition-colors"
+                class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium bg-overlay hover:bg-hover text-text-secondary hover:text-text transition-colors"
               >
                 Editar
               </button>
               <button
                 @click="emit('delete', entry.id)"
-                class="px-4 py-2 rounded-lg text-sm font-medium bg-overlay hover:bg-error/10 text-text-secondary hover:text-error transition-colors"
+                class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium bg-overlay hover:bg-error/10 text-text-secondary hover:text-error transition-colors"
               >
                 Eliminar
               </button>
