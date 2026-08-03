@@ -29,27 +29,37 @@ const ERROR_MESSAGES: Record<string, string> = {
   network: 'Error de red al transcribir. Intenta de nuevo.',
 }
 
+function normalizeText(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/^[¿¡("']+/, '')
+    .replace(/[.,;:!?()"'\u2026]+$/, '')
+    .replace(/\s+/g, ' ')
+}
+
+export function appendDictatedText(current: string, text: string): string {
+  const normText = normalizeText(text)
+  if (!normText) return current
+  const trimmed = current.trimEnd()
+  if (!trimmed) return text.trim()
+
+  const normCurrent = normalizeText(trimmed)
+  if (normCurrent.endsWith(normText)) return current
+  if (normText.startsWith(normCurrent)) return text.trim()
+
+  return `${trimmed} ${text.trim()}`
+}
+
 export function useSpeechRecognition() {
   const isSupported = getRecognitionCtor() !== null
   const isListening = ref(false)
   const error = ref('')
 
   let recognition: SpeechRecognitionLike | null = null
-
-  const recentFinalTexts: string[] = []
-  const RECENT_LIMIT = 3
-
-  function isDuplicate(text: string): boolean {
-    const index = recentFinalTexts.indexOf(text)
-    if (index !== -1) {
-      recentFinalTexts.splice(index, 1)
-      recentFinalTexts.push(text)
-      return true
-    }
-    recentFinalTexts.push(text)
-    if (recentFinalTexts.length > RECENT_LIMIT) recentFinalTexts.shift()
-    return false
-  }
+  let sessionId = 0
+  let lastResultIndex = 0
+  let lastFinalNorm = ''
 
   function startListening(options: DictateOptions) {
     const Ctor = getRecognitionCtor()
@@ -59,39 +69,53 @@ export function useSpeechRecognition() {
     }
 
     const lang = options.lang || 'es-MX'
+    const rec = new Ctor()
+    const session = ++sessionId
+    recognition = rec
 
-    if (!recognition) {
-      recognition = new Ctor()
-    }
+    lastResultIndex = 0
+    lastFinalNorm = ''
 
-    const rec = recognition
     rec.lang = lang
     rec.continuous = true
     rec.interimResults = true
 
     rec.onresult = (event) => {
       error.value = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i]
+      const results = event.results
+      if (results.length < lastResultIndex) {
+        lastResultIndex = 0
+      }
+      for (let i = Math.max(event.resultIndex, lastResultIndex); i < results.length; i++) {
+        const result = results[i]
         if (result.isFinal) {
           const text = result[0]?.transcript?.trim()
-          if (text && !isDuplicate(text) && options.onFinal) options.onFinal(text)
+          if (!text) continue
+
+          const norm = normalizeText(text)
+          if (norm === lastFinalNorm) continue
+          lastFinalNorm = norm
+
+          if (options.onFinal) options.onFinal(text)
         }
       }
+      lastResultIndex = results.length
     }
 
     rec.onerror = (event) => {
       error.value = ERROR_MESSAGES[event.error] ?? 'Error al transcribir. Intenta de nuevo.'
-      if (event.error === 'not-allowed' || event.error === 'audio-capture' || event.error === 'service-not-allowed') {
+      if (
+        event.error === 'not-allowed' ||
+        event.error === 'audio-capture' ||
+        event.error === 'service-not-allowed'
+      ) {
         isListening.value = false
       }
     }
 
     rec.onend = () => {
-      if (isListening.value) {
-        try {
-          rec.start()
-        } catch {}
+      if (isListening.value && session === sessionId) {
+        startListening(options)
       }
     }
 
@@ -104,11 +128,13 @@ export function useSpeechRecognition() {
   }
 
   function stopListening() {
+    sessionId++
     if (recognition) {
       try {
         recognition.stop()
       } catch {}
     }
+    recognition = null
     isListening.value = false
   }
 

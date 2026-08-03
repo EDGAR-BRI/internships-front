@@ -2,6 +2,7 @@
 import { ref, watch, computed, onMounted, nextTick } from 'vue'
 import type { Note } from '../composables/useNotes'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
+import { appendDictatedText } from '../composables/useSpeechRecognition'
 import DictationButton from './DictationButton.vue'
 
 const props = defineProps<{
@@ -172,7 +173,7 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 function appendTranscript(text: string) {
-  content.value = content.value ? `${content.value} ${text}` : text
+  content.value = appendDictatedText(content.value, text)
 }
 
 function autoResize(e: Event) {

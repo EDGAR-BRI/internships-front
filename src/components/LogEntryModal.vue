@@ -2,6 +2,7 @@
 import { ref, watch, nextTick } from 'vue'
 import type { LogEntry, LogEntryFormData } from '../composables/useLogEntries'
 import { useSettings } from '../composables/useSettings'
+import { appendDictatedText } from '../composables/useSpeechRecognition'
 import { computeWeek } from '../utils/week'
 import DictationButton from './DictationButton.vue'
 
@@ -44,7 +45,7 @@ function removeNote(index: number) {
 
 function appendNoteTranscript(index: number, text: string) {
   const current = newNotes.value[index]
-  newNotes.value[index] = current ? `${current} ${text}` : text
+  newNotes.value[index] = appendDictatedText(current, text)
 }
 
 function autoResize(e: Event) {
@@ -209,7 +210,7 @@ async function handleSubmit() {
 
 function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources', text: string) {
   const current = field === 'theory' ? theory.value : field === 'attitudes' ? attitudes.value : field === 'impact' ? impact.value : resources.value
-  const next = current ? `${current} ${text}` : text
+  const next = appendDictatedText(current, text)
   if (field === 'theory') theory.value = next
   else if (field === 'attitudes') attitudes.value = next
   else if (field === 'impact') impact.value = next
