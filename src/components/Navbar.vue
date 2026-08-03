@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import SettingsModal from './SettingsModal.vue'
+import NoteModal from './NoteModal.vue'
 
 const { user, isAuthenticated, logout, restoreSession } = useAuth()
+
+const noteModalOpen = ref(false)
 
 // Restaurar sesión lo antes posible (en el cliente al hidratar)
 if (typeof window !== 'undefined') {
@@ -90,7 +93,18 @@ function isActive(path: string): boolean {
 
     <!-- Mobile bottom tab bar -->
     <nav v-if="isAuthenticated" class="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-canvas border-t border-border">
-      <div class="flex items-stretch justify-around h-14">
+      <div class="relative flex items-stretch justify-around h-14">
+        <button
+          @click="noteModalOpen = true"
+          class="absolute left-1/2 -translate-x-1/2 -top-5 z-10 w-12 h-12 rounded-full bg-accent hover:bg-accent-hover active:scale-95 text-white shadow-lg shadow-accent/30 border-4 border-canvas transition-colors flex items-center justify-center"
+          title="Agregar nota"
+          aria-label="Agregar nota"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+
         <a
           href="/dashboard"
           class="flex flex-col items-center justify-center gap-0.5 flex-1 transition-colors"
@@ -140,5 +154,7 @@ function isActive(path: string): boolean {
     <div v-if="isAuthenticated" class="sm:hidden h-14"></div>
 
     <SettingsModal />
+
+    <NoteModal :is-open="noteModalOpen" @close="noteModalOpen = false" />
   </div>
 </template>
