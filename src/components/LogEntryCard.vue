@@ -156,7 +156,7 @@ const isGrid = computed(() => props.viewMode === 'grid')
           </svg>
         </button>
         <h3
-          class="text-base font-semibold text-text leading-snug line-clamp-2"
+          class="flex-1 min-w-0 text-base font-semibold text-text leading-snug"
           :class="{ 'line-through text-text-muted': entry.status === 'done' }"
         >
           {{ entry.name }}
@@ -253,7 +253,7 @@ const isGrid = computed(() => props.viewMode === 'grid')
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1">
             <h3
-              class="text-sm font-semibold text-text leading-snug truncate"
+              class="text-sm font-semibold text-text leading-snug"
               :class="{ 'line-through text-text-muted': entry.status === 'done' }"
             >
               {{ entry.name }}

@@ -84,21 +84,50 @@ function handleBackdropClick(e: MouseEvent) {
           @click.stop
         >
           <!-- Header -->
-          <div class="flex items-start justify-between gap-4 p-6 border-b border-border">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-2">
-                <span
-                  class="inline-flex items-center px-2 py-1 rounded-md text-[11px] font-medium border"
+          <div class="sticky top-0 z-10 bg-surface border-b border-border">
+            <div class="relative p-6">
+              <div class="flex items-center gap-2 mb-2 pr-10">
+                <button
+                  @click="handleStatusToggle"
+                  class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors"
                   :class="statusPillClasses[entry.status]"
+                  :title="`Cambiar estado: ${statusLabels[entry.status]}`"
                 >
+                  <svg
+                    v-if="entry.status === 'done'"
+                    class="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <svg
+                    v-else-if="entry.status === 'in_progress'"
+                    class="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3" />
+                  </svg>
+                  <svg
+                    v-else
+                    class="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                   {{ statusLabels[entry.status] }}
-                </span>
+                </button>
                 <span v-if="entry.week" class="text-[11px] text-text-muted">
                   Semana {{ entry.week }}
                 </span>
               </div>
               <h2
-                class="text-xl font-semibold text-text leading-snug"
+                class="w-full text-xl font-semibold text-text leading-snug break-words pr-10"
                 :class="{ 'line-through text-text-muted': entry.status === 'done' }"
               >
                 {{ entry.name }}
@@ -106,7 +135,7 @@ function handleBackdropClick(e: MouseEvent) {
             </div>
             <button
               @click="emit('close')"
-              class="p-2 text-text-muted hover:text-text hover:bg-overlay rounded-lg transition-colors flex-shrink-0"
+              class="absolute top-4 right-4 p-2 text-text-muted hover:text-text hover:bg-overlay rounded-lg transition-colors flex-shrink-0"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -242,45 +271,6 @@ function handleBackdropClick(e: MouseEvent) {
 
           <!-- Footer actions -->
           <div class="flex flex-wrap items-center justify-between gap-3 p-6 border-t border-border">
-            <button
-              @click="handleStatusToggle"
-              class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
-              :class="entry.status === 'done'
-                ? 'bg-accent border-accent text-white'
-                : entry.status === 'in_progress'
-                  ? 'bg-warning/10 border-warning/40 text-warning hover:border-warning'
-                  : 'bg-neutral-500/10 border-neutral-500/40 text-neutral-400 hover:border-neutral-400'"
-            >
-              <svg
-                v-if="entry.status === 'done'"
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-              </svg>
-              <svg
-                v-else-if="entry.status === 'in_progress'"
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3" />
-              </svg>
-              <svg
-                v-else
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {{ statusLabels[entry.status] }}
-            </button>
-
             <div class="flex items-center gap-2 w-full sm:w-auto">
               <button
                 @click="emit('addNote', entry)"
