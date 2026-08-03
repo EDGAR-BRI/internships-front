@@ -118,7 +118,7 @@ function isActive(path: string): boolean {
 
         <a
           href="/bitacora"
-          class="flex flex-col items-center justify-center gap-0.5 flex-1 transition-colors"
+          class="flex flex-col items-center justify-center gap-0.5 flex-1 mr-7 transition-colors"
           :class="isActive('/bitacora') ? 'text-accent' : 'text-text-muted'"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,7 +129,7 @@ function isActive(path: string): boolean {
 
         <a
           href="/asistencia"
-          class="flex flex-col items-center justify-center gap-0.5 flex-1 transition-colors"
+          class="flex flex-col items-center justify-center gap-0.5 flex-1 ml-7 transition-colors"
           :class="isActive('/asistencia') ? 'text-accent' : 'text-text-muted'"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
