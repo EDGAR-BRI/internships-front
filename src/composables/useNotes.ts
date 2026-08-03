@@ -7,6 +7,7 @@ export interface Note {
   userId: number
   logEntryId: number | null
   content: string
+  date: string | null
   createdAt: string
   updatedAt: string
 }
@@ -14,6 +15,7 @@ export interface Note {
 export interface NoteFormData {
   content: string
   logEntryId: number | null
+  date: string | null
 }
 
 const notes = ref<Note[]>([])
@@ -41,7 +43,7 @@ export function useNotes() {
     try {
       const data = await api.post<{ note: Note }>(
         '/notes',
-        { content: formData.content, logEntryId: formData.logEntryId ?? null },
+        { content: formData.content, logEntryId: formData.logEntryId ?? null, date: formData.date ?? null },
         token.value || undefined
       )
       notes.value.unshift(data.note)
@@ -52,15 +54,15 @@ export function useNotes() {
     }
   }
 
-  async function updateNote(id: number, content: string) {
+  async function updateNote(id: number, data: { content?: string; logEntryId?: number | null; date?: string | null }) {
     error.value = ''
     try {
-      const data = await api.put<{ note: Note }>(`/notes/${id}`, { content }, token.value || undefined)
+      const res = await api.put<{ note: Note }>(`/notes/${id}`, data, token.value || undefined)
       const index = notes.value.findIndex((n) => n.id === id)
       if (index !== -1) {
-        notes.value[index] = data.note
+        notes.value[index] = res.note
       }
-      return data.note
+      return res.note
     } catch (e: any) {
       error.value = e.message || 'Error al actualizar nota'
       throw e

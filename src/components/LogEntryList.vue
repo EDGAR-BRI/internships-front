@@ -78,7 +78,14 @@ async function handleDelete(id: number) {
 }
 
 async function handleStatusChange(id: number, status: LogEntry['status']) {
-  await updateLogEntry(id, { status })
+  const data: Partial<import('../composables/useLogEntries').LogEntryFormData> = { status }
+  if (status === 'done') {
+    const now = new Date()
+    const offset = now.getTimezoneOffset()
+    const local = new Date(now.getTime() - offset * 60000)
+    data.datEnd = local.toISOString().slice(0, 16)
+  }
+  await updateLogEntry(id, data)
 }
 
 function openAddNote(entry: LogEntry) {

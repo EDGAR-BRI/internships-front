@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useNotes, type Note } from '../composables/useNotes'
 import NoteCard from './NoteCard.vue'
-import NoteModal from './NoteModal.vue'
+
+const NoteModal = defineAsyncComponent(() => import('./NoteModal.vue'))
 
 const { notes, loading, error, fetchNotes, deleteNote } = useNotes()
 
