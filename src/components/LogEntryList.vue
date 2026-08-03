@@ -25,7 +25,12 @@ const activeFilter = ref<'all' | LogEntry['status']>('all')
 const confirmDeleteId = ref<number | null>(null)
 
 const showDetailModal = ref(false)
-const viewingEntry = ref<LogEntry | null>(null)
+const viewingId = ref<number | null>(null)
+const viewingEntry = computed<LogEntry | null>(() =>
+  viewingId.value !== null
+    ? (logEntries.value.find((e) => e.id === viewingId.value) ?? null)
+    : null
+)
 
 const noteModalOpen = ref(false)
 const noteTargetEntry = ref<LogEntry | null>(null)
@@ -131,19 +136,20 @@ function closeModal() {
 }
 
 function openViewDetail(entry: LogEntry) {
-  viewingEntry.value = entry
+  viewingId.value = entry.id
   showDetailModal.value = true
 }
 
 function closeDetailModal() {
   showDetailModal.value = false
-  viewingEntry.value = null
+  viewingId.value = null
 }
 
 async function handleDelete(id: number) {
   if (confirmDeleteId.value === id) {
     await deleteLogEntry(id)
     confirmDeleteId.value = null
+    if (viewingId.value === id) closeDetailModal()
   } else {
     confirmDeleteId.value = id
     setTimeout(() => {
