@@ -40,13 +40,20 @@ onMounted(() => {
   fetchLogEntries()
 })
 
+function utcToLocal(utcStr: string): string {
+  const d = new Date(utcStr)
+  const offset = d.getTimezoneOffset()
+  const local = new Date(d.getTime() - offset * 60000)
+  return local.toISOString().slice(0, 16)
+}
+
 watch(
   () => props.isOpen,
   (open) => {
     if (open) {
       content.value = props.note?.content || ''
       selectedLogEntryId.value = props.logEntryId ?? props.note?.logEntryId ?? null
-      noteDate.value = props.note?.date ? props.note.date.slice(0, 16) : ''
+      noteDate.value = props.note?.date ? utcToLocal(props.note.date) : ''
       activitySearch.value = selectedActivityName.value
       saveError.value = ''
       showDropdown.value = false
@@ -61,7 +68,7 @@ function selectActivity(entry: LogEntry | null) {
   activitySearch.value = entry?.name || ''
   showDropdown.value = false
   if (entry?.datStart) {
-    noteDate.value = entry.datStart.slice(0, 16)
+    noteDate.value = utcToLocal(entry.datStart)
   }
 }
 

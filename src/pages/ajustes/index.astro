@@ -1,0 +1,17 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro'
+import AuthGuard from '../../components/AuthGuard.vue'
+import SettingsForm from '../../components/SettingsForm.vue'
+---
+
+<AuthLayout title="Ajustes - Internship Tracker">
+  <AuthGuard client:load>
+    <div class="space-y-6">
+      <h1 class="text-2xl font-semibold tracking-tight">Ajustes</h1>
+      <p class="text-text-secondary text-sm">
+        Configura el período de tu pasantía para que las semanas se calculen automáticamente.
+      </p>
+      <SettingsForm client:load />
+    </div>
+  </AuthGuard>
+</AuthLayout>

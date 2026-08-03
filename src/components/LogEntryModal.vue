@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import type { LogEntry, LogEntryFormData } from '../composables/useLogEntries'
+import { useSettings } from '../composables/useSettings'
+import { useAuth } from '../composables/useAuth'
+import { computeWeek } from '../utils/week'
 import DictationButton from './DictationButton.vue'
 
 const props = defineProps<{
@@ -13,6 +16,8 @@ const emit = defineEmits<{
   saved: [entry: LogEntry]
 }>()
 
+const { token } = useAuth()
+const { settings, fetchSettings } = useSettings(token.value)
 const name = ref('')
 const status = ref<'pending' | 'in_progress' | 'done'>('pending')
 const week = ref<number | null>(null)
@@ -51,17 +56,25 @@ function getTodayLocal(): string {
   return local.toISOString().slice(0, 16)
 }
 
+function utcToLocal(utcStr: string): string {
+  const d = new Date(utcStr)
+  const offset = d.getTimezoneOffset()
+  const local = new Date(d.getTime() - offset * 60000)
+  return local.toISOString().slice(0, 16)
+}
+
 watch(
   () => props.isOpen,
   (open) => {
     if (open) {
+      fetchSettings()
       if (props.entry) {
         name.value = props.entry.name
         status.value = props.entry.status
         week.value = props.entry.week
         area.value = props.entry.area || ''
-        datStart.value = props.entry.datStart ? props.entry.datStart.slice(0, 16) : ''
-        datEnd.value = props.entry.datEnd ? props.entry.datEnd.slice(0, 16) : ''
+        datStart.value = props.entry.datStart ? utcToLocal(props.entry.datStart) : ''
+        datEnd.value = props.entry.datEnd ? utcToLocal(props.entry.datEnd) : ''
         theory.value = props.entry.theory || ''
         attitudes.value = props.entry.attitudes || ''
         impact.value = props.entry.impact || ''
@@ -92,6 +105,15 @@ watch(
     }
   }
 )
+
+watch(datStart, (val) => {
+  if (!props.entry && val && settings.value) {
+    const computed = computeWeek(settings.value.startDate, val, settings.value.skippedWeeks)
+    if (computed !== null) {
+      week.value = computed
+    }
+  }
+})
 
 async function handleSubmit() {
   if (!name.value.trim()) {
@@ -238,6 +260,13 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                     placeholder="Ej. 3"
                     class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
                   />
+                  <p v-if="settings" class="text-[11px] text-text-muted">
+                    Se calcula automáticamente desde tu período de pasantía
+                  </p>
+                  <p v-else class="text-[11px] text-text-muted">
+                    <a href="/ajustes" class="text-accent hover:underline">Configura tu período</a> para cálculo automático
+                  </p>
+                </div>
                 </div>
 
                 <div class="space-y-1.5 min-w-0">
