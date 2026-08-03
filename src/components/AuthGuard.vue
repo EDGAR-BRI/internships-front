@@ -2,23 +2,23 @@
 import { onMounted, ref } from 'vue'
 import { useAuth } from '../composables/useAuth'
 
-const { loadFromStorage, isAuthenticated, token } = useAuth()
+const { restoreSession, loadFromStorage, isAuthenticated } = useAuth()
 const ready = ref(false)
 
-onMounted(async () => {
-  console.log('[AuthGuard] mounted, calling loadFromStorage')
-  await loadFromStorage()
-  console.log('[AuthGuard] loadFromStorage done', {
-    isAuthenticated: isAuthenticated.value,
-    hasToken: !!token.value,
-  })
-  if (!isAuthenticated.value) {
-    console.log('[AuthGuard] Not authenticated, redirecting to login')
+onMounted(() => {
+  // 1. Restaurar sesión sincrónicamente desde localStorage
+  const hasSession = restoreSession()
+
+  if (!hasSession) {
     window.location.replace('/login')
     return
   }
-  console.log('[AuthGuard] Authenticated, setting ready=true')
+
+  // 2. Mostrar contenido inmediatamente
   ready.value = true
+
+  // 3. Verificar token con el servidor en background
+  loadFromStorage()
 })
 </script>
 

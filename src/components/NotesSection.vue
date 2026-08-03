@@ -9,6 +9,7 @@ const { notes, loading, error, fetchNotes, deleteNote } = useNotes()
 
 const showModal = ref(false)
 const editingNote = ref<Note | null>(null)
+const viewOnly = ref(false)
 
 const standaloneNotes = computed(() => notes.value.filter((n) => !n.logEntryId))
 
@@ -18,17 +19,26 @@ onMounted(() => {
 
 function openCreateModal() {
   editingNote.value = null
+  viewOnly.value = false
   showModal.value = true
 }
 
 function openEditModal(note: Note) {
   editingNote.value = note
+  viewOnly.value = false
+  showModal.value = true
+}
+
+function openViewModal(note: Note) {
+  editingNote.value = note
+  viewOnly.value = true
   showModal.value = true
 }
 
 function closeModal() {
   showModal.value = false
   editingNote.value = null
+  viewOnly.value = false
 }
 
 async function handleDelete(id: number) {
@@ -37,7 +47,7 @@ async function handleDelete(id: number) {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-4 mt-4">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <h2 class="text-lg font-semibold tracking-tight">Notas</h2>
       <button
@@ -75,6 +85,7 @@ async function handleDelete(id: number) {
         v-for="note in standaloneNotes"
         :key="note.id"
         :note="note"
+        @view="openViewModal"
         @edit="openEditModal"
         @delete="handleDelete"
       />
@@ -84,6 +95,7 @@ async function handleDelete(id: number) {
       :is-open="showModal"
       :note="editingNote"
       :log-entry-id="null"
+      :view-only="viewOnly"
       @close="closeModal"
       @saved="closeModal"
     />

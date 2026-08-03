@@ -8,6 +8,7 @@ const props = defineProps<{
   note?: Note | null
   isOpen: boolean
   logEntryId?: number | null
+  viewOnly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -17,6 +18,7 @@ const emit = defineEmits<{
 
 const { logEntries, fetchLogEntries } = useLogEntries()
 
+const title = ref('')
 const content = ref('')
 const selectedLogEntryId = ref<number | null>(null)
 const noteDate = ref('')
@@ -24,6 +26,18 @@ const activitySearch = ref('')
 const showDropdown = ref(false)
 const saving = ref(false)
 const saveError = ref('')
+const isViewing = ref(false)
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 const filteredActivities = computed(() => {
   if (!activitySearch.value.trim()) return logEntries.value
@@ -51,6 +65,8 @@ watch(
   () => props.isOpen,
   (open) => {
     if (open) {
+      isViewing.value = props.viewOnly ?? false
+      title.value = props.note?.title || ''
       content.value = props.note?.content || ''
       selectedLogEntryId.value = props.logEntryId ?? props.note?.logEntryId ?? null
       noteDate.value = props.note?.date ? utcToLocal(props.note.date) : ''
@@ -67,6 +83,16 @@ watch(
     }
   }
 )
+
+watch(content, () => {
+  nextTick(() => {
+    const textarea = document.getElementById('note-content') as HTMLTextAreaElement | null
+    if (textarea) {
+      textarea.style.height = 'auto'
+      textarea.style.height = textarea.scrollHeight + 'px'
+    }
+  })
+})
 
 const isFixedActivity = () => !!props.logEntryId && !props.note
 
@@ -110,12 +136,14 @@ async function handleSubmit() {
     let savedNote: Note
     if (props.note) {
       savedNote = await updateNote(props.note.id, {
+        title: title.value.trim() || null,
         content: content.value.trim(),
         logEntryId: selectedLogEntryId.value,
         date: noteDate.value || null,
       })
     } else {
       savedNote = await createNote({
+        title: title.value.trim() || null,
         content: content.value.trim(),
         logEntryId: selectedLogEntryId.value ?? null,
         date: noteDate.value || null,
@@ -172,7 +200,7 @@ function autoResize(e: Event) {
         >
           <div class="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
             <h2 class="text-lg font-semibold text-text">
-              {{ note ? 'Editar nota' : 'Nueva nota' }}
+              {{ isViewing ? 'Nota' : (note ? 'Editar nota' : 'Nueva nota') }}
             </h2>
             <button
               @click="emit('close')"
@@ -184,7 +212,50 @@ function autoResize(e: Event) {
             </button>
           </div>
 
-          <form @submit.prevent="handleSubmit" class="flex flex-col flex-1 overflow-hidden">
+          <div v-if="isViewing" class="flex flex-col flex-1 overflow-hidden">
+            <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span
+                  class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
+                  :class="note?.logEntryId
+                    ? 'bg-accent/10 text-accent'
+                    : 'bg-warning/10 text-warning'"
+                >
+                  {{ note?.logEntryId ? 'Nota de actividad' : 'Individual' }}
+                </span>
+                <span class="inline-flex items-center text-[10px] gap-1 text-text-muted">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {{ note ? formatDate(note.date || note.createdAt) : '' }}
+                </span>
+              </div>
+              <h3 v-if="note?.title" class="text-sm font-semibold text-text">
+                {{ note.title }}
+              </h3>
+              <p class="text-sm text-text whitespace-pre-wrap break-words leading-relaxed">
+                {{ note?.content }}
+              </p>
+            </div>
+            <div class="flex items-center justify-end gap-2 px-6 py-5 border-t border-border flex-shrink-0">
+              <button
+                type="button"
+                @click="emit('close')"
+                class="px-4 py-2 text-sm text-text-muted hover:text-text hover:bg-hover rounded-md transition-colors"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                @click="isViewing = false"
+                class="bg-accent hover:bg-accent-hover text-white px-5 py-2 rounded-md text-sm font-medium transition-colors duration-150"
+              >
+                Editar
+              </button>
+            </div>
+          </div>
+
+          <form v-else @submit.prevent="handleSubmit" class="flex flex-col flex-1 overflow-hidden">
             <div class="px-6 py-5 space-y-5 overflow-y-auto flex-1 min-w-0">
               <div v-if="saveError" class="bg-error/10 border border-error/20 text-error text-sm rounded-md p-3">
                 {{ saveError }}
@@ -246,6 +317,19 @@ function autoResize(e: Event) {
                     class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
                   />
                 </div>
+              </div>
+
+              <div class="space-y-1.5 min-w-0">
+                <label for="note-title" class="block text-sm font-medium text-text">
+                  Título <span class="text-text-muted">(opcional)</span>
+                </label>
+                <input
+                  id="note-title"
+                  v-model="title"
+                  type="text"
+                  placeholder="Título de la nota"
+                  class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                />
               </div>
 
               <div class="space-y-1.5 min-w-0">

@@ -2,7 +2,6 @@
 import { ref, watch, nextTick } from 'vue'
 import type { LogEntry, LogEntryFormData } from '../composables/useLogEntries'
 import { useSettings } from '../composables/useSettings'
-import { useAuth } from '../composables/useAuth'
 import { computeWeek } from '../utils/week'
 import DictationButton from './DictationButton.vue'
 
@@ -16,8 +15,7 @@ const emit = defineEmits<{
   saved: [entry: LogEntry]
 }>()
 
-const { token } = useAuth()
-const { settings, fetchSettings } = useSettings(token.value)
+const { settings, fetchSettings } = useSettings()
 const name = ref('')
 const status = ref<'pending' | 'in_progress' | 'done'>('pending')
 const week = ref<number | null>(null)
@@ -126,6 +124,30 @@ watch(datStart, (val) => {
     }
   }
 })
+
+function resizeTextarea(id: string) {
+  nextTick(() => {
+    const el = document.getElementById(id) as HTMLTextAreaElement | null
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = el.scrollHeight + 'px'
+  })
+}
+
+watch(theory, () => resizeTextarea('log-entry-theory'))
+watch(attitudes, () => resizeTextarea('log-entry-attitudes'))
+watch(impact, () => resizeTextarea('log-entry-impact'))
+watch(resources, () => resizeTextarea('log-entry-resources'))
+watch(newNotes, () => {
+  nextTick(() => {
+    newNotes.value.forEach((_, idx) => {
+      const el = document.getElementById(`new-note-${idx}`) as HTMLTextAreaElement | null
+      if (!el) return
+      el.style.height = 'auto'
+      el.style.height = el.scrollHeight + 'px'
+    })
+  })
+}, { deep: true })
 
 async function handleSubmit() {
   if (!name.value.trim()) {
@@ -341,6 +363,7 @@ function appendTranscript(field: 'theory' | 'attitudes' | 'impact' | 'resources'
                   class="flex items-start gap-2"
                 >
                   <textarea
+                    :id="'new-note-' + idx"
                     v-model="newNotes[idx]"
                     rows="2"
                     placeholder="Escribe o dicta tu nota..."

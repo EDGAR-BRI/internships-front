@@ -17,6 +17,15 @@ const ERROR_MESSAGES: Record<string, string> = {
   'AbortError': 'La solicitud fue cancelada.',
 }
 
+export class ApiError extends Error {
+  status?: number
+  constructor(message: string, status?: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
 function getFriendlyError(error: unknown): string {
   if (error instanceof TypeError) {
     const message = error.message
@@ -82,7 +91,7 @@ export async function apiFetch<T = any>(path: string, options: ApiOptions = {}):
         data.error ||
         (data.errors && data.errors[0]?.message) ||
         'Error en la petición'
-      throw new Error(errorMessage)
+      throw new ApiError(errorMessage, res.status)
     }
 
     return unwrapData(data) as T

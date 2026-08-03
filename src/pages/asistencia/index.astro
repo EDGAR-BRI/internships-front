@@ -1,11 +1,11 @@
 ---
 import AuthLayout from '../../layouts/AuthLayout.astro'
 import AuthGuard from '../../components/AuthGuard.vue'
-import DashboardSummary from '../../components/DashboardSummary.vue'
+import AttendanceSection from '../../components/AttendanceSection.vue'
 ---
 
-<AuthLayout title="Dashboard - Internship Tracker">
+<AuthLayout title="Asistencia - Internship Tracker">
   <AuthGuard client:load>
-    <DashboardSummary client:load />
+    <AttendanceSection client:load />
   </AuthGuard>
 </AuthLayout>

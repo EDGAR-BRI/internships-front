@@ -5,13 +5,16 @@ import { useLogEntries } from '../composables/useLogEntries'
 import { useAuth } from '../composables/useAuth'
 import { computeWeek } from '../utils/week'
 
-const { token } = useAuth()
-const { settings, error: settingsError, fetchSettings, updateSettings } = useSettings(token.value)
+const emit = defineEmits<{ saved: [] }>()
+
+const { settings, error: settingsError, fetchSettings, updateSettings } = useSettings()
 const { logEntries, fetchLogEntries, updateLogEntry } = useLogEntries()
 
 const startDate = ref('')
 const endDate = ref('')
 const skippedWeeksInput = ref('')
+const workType = ref<'full' | 'partial' | ''>('')
+const workHoursPerDay = ref<number | ''>('')
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref(false)
@@ -22,6 +25,8 @@ onMounted(async () => {
     startDate.value = settings.value.startDate.slice(0, 10)
     endDate.value = settings.value.endDate.slice(0, 10)
     skippedWeeksInput.value = settings.value.skippedWeeks?.join(', ') || ''
+    workType.value = settings.value.workType || ''
+    workHoursPerDay.value = settings.value.workHoursPerDay ?? ''
   }
 })
 
@@ -50,11 +55,20 @@ async function handleSubmit() {
 
   try {
     const skipped = parseSkippedWeeks(skippedWeeksInput.value)
-    await updateSettings({
+    const payload: any = {
       startDate: startDate.value,
       endDate: endDate.value,
       skippedWeeks: skipped.length > 0 ? skipped : undefined,
-    })
+    }
+    if (workType.value) {
+      payload.workType = workType.value
+    }
+    if (workType.value === 'partial') {
+      payload.workHoursPerDay = Number(workHoursPerDay.value) || 8
+    } else {
+      payload.workHoursPerDay = 8
+    }
+    await updateSettings(payload)
 
     await fetchLogEntries()
     const updates = logEntries.value
@@ -69,6 +83,7 @@ async function handleSubmit() {
     }
 
     saveSuccess.value = true
+    emit('saved')
   } catch (e: any) {
     saveError.value = e.message || 'Error al guardar'
   } finally {
@@ -125,6 +140,44 @@ async function handleSubmit() {
         class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
       />
       <p class="text-xs text-text-muted">Números de semana separados por coma. Estas semanas no se contarán.</p>
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="block text-sm font-medium text-text">Tipo de jornada</label>
+      <div class="flex gap-2">
+        <button
+          type="button"
+          @click="workType = 'full'"
+          :class="workType === 'full' ? 'bg-accent text-white' : 'bg-overlay text-text-secondary hover:text-text'"
+          class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+        >
+          Día completo
+        </button>
+        <button
+          type="button"
+          @click="workType = 'partial'"
+          :class="workType === 'partial' ? 'bg-accent text-white' : 'bg-overlay text-text-secondary hover:text-text'"
+          class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+        >
+          Parcial
+        </button>
+      </div>
+    </div>
+
+    <div v-if="workType === 'partial'" class="space-y-1.5">
+      <label for="work-hours" class="block text-sm font-medium text-text">
+        Horas por día <span class="text-error">*</span>
+      </label>
+      <input
+        id="work-hours"
+        v-model.number="workHoursPerDay"
+        type="number"
+        min="1"
+        max="24"
+        placeholder="Ej. 8"
+        class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+      />
+      <p class="text-xs text-text-muted">Cantidad de horas por defecto de tu jornada parcial. Se usa para calcular el total y se pre-llena en el registro de asistencia.</p>
     </div>
 
     <button

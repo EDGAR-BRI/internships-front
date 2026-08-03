@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { api } from '../lib/api'
+import { api, ApiError } from '../lib/api'
 
 interface User {
   id: number
@@ -23,36 +23,41 @@ export function useAuth() {
     }
   }
 
-  async function loadFromStorage() {
-    if (typeof window === 'undefined') return
+  function restoreSession(): boolean {
+    if (typeof window === 'undefined') return false
 
     const savedToken = localStorage.getItem('auth_token')
     const savedUser = localStorage.getItem('auth_user')
 
-    console.log('[useAuth] loadFromStorage called', {
-      hasToken: !!savedToken,
-      tokenLength: savedToken?.length,
-      hasUser: !!savedUser,
-    })
+    if (!savedToken || !savedUser) return false
 
-    if (!savedToken || !savedUser) {
-      console.log('[useAuth] No saved token/user, returning early')
-      return
+    try {
+      token.value = savedToken
+      user.value = JSON.parse(savedUser)
+      return true
+    } catch {
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_user')
+      return false
     }
+  }
 
-    token.value = savedToken
-    user.value = JSON.parse(savedUser)
+  async function loadFromStorage() {
+    if (typeof window === 'undefined') return
+
+    const hadSession = restoreSession()
+    if (!hadSession) return
 
     try {
       loading.value = true
-      console.log('[useAuth] Fetching /account/profile with token')
-      const profile = await api.get<User>('/account/profile', savedToken)
-      console.log('[useAuth] Profile fetched successfully', profile)
+      const profile = await api.get<User>('/account/profile', token.value!)
       user.value = profile
       localStorage.setItem('auth_user', JSON.stringify(profile))
     } catch (err) {
-      console.error('[useAuth] Profile fetch failed, logging out:', err)
-      logout()
+      const isUnauthorized = err instanceof ApiError && err.status === 401
+      if (isUnauthorized) {
+        logout()
+      }
     } finally {
       loading.value = false
     }
@@ -79,6 +84,7 @@ export function useAuth() {
     loading,
     isAuthenticated,
     setAuth,
+    restoreSession,
     loadFromStorage,
     logout,
   }
