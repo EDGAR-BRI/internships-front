@@ -74,7 +74,7 @@ function handleBackdropClick(e: MouseEvent) {
     <Transition name="fade">
       <div
         v-if="isOpen && entry"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        class="fixed inset-0 z-[55] flex items-center justify-center p-4"
         @click="handleBackdropClick"
       >
         <div class="absolute inset-0 bg-black/60" />
@@ -125,6 +125,15 @@ function handleBackdropClick(e: MouseEvent) {
                 <span v-if="entry.week" class="text-[11px] text-text-muted">
                   Semana {{ entry.week }}
                 </span>
+                <button
+                  @click="emit('addNote', entry)"
+                  class="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-accent hover:text-accent-hover transition-colors"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Nota
+                </button>
               </div>
               <h2
                 class="w-full text-xl font-semibold text-text leading-snug break-words pr-10"
@@ -258,14 +267,8 @@ function handleBackdropClick(e: MouseEvent) {
           </div>
 
           <!-- Footer actions -->
-          <div class="flex flex-wrap items-center justify-between gap-3 p-6 border-t border-border">
+          <div class="flex flex-wrap items-center justify-end gap-3 p-6 border-t border-border">
             <div class="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                @click="emit('addNote', entry)"
-                class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium text-accent hover:text-accent-hover hover:bg-accent/10 transition-colors"
-              >
-                + Nota
-              </button>
               <button
                 @click="emit('edit', entry)"
                 class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium bg-overlay hover:bg-hover text-text-secondary hover:text-text transition-colors"
