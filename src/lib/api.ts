@@ -111,6 +111,9 @@ export const api = {
   put: <T = any>(path: string, body: any, token?: string) =>
     apiFetch<T>(path, { method: 'PUT', body, token }),
 
+  patch: <T = any>(path: string, body: any, token?: string) =>
+    apiFetch<T>(path, { method: 'PATCH', body, token }),
+
   delete: <T = any>(path: string, token?: string) =>
     apiFetch<T>(path, { method: 'DELETE', token }),
 }
