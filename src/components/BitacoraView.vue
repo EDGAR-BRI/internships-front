@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import LogEntryList from './LogEntryList.vue'
 import NotesList from './NotesList.vue'
 import ImportBitacoraModal from './ImportBitacoraModal.vue'
 import { useLogEntries } from '../composables/useLogEntries'
 import { useNotes } from '../composables/useNotes'
+import { useSubscription } from '../composables/useSubscription'
 import { buildMarkdown, downloadMarkdown } from '../utils/exportMarkdown'
 
 const activeTab = ref<'activities' | 'notes'>('activities')
@@ -13,8 +14,22 @@ const importModalOpen = ref(false)
 
 const { logEntries, fetchLogEntries, error: logEntriesError } = useLogEntries()
 const { notes, fetchNotes, error: notesError } = useNotes()
+const { mySubscription, fetchMySubscription } = useSubscription()
+
+const canExport = computed(() => mySubscription.value?.canExport ?? true)
 
 async function handleExport() {
+  if (!canExport.value) {
+    window.dispatchEvent(
+      new CustomEvent('upgrade-offer', {
+        detail: {
+          message:
+            'La exportación de la bitácora está disponible en el plan Pro. Actualiza por $3 (pago único) para exportar tus actividades y notas.',
+        },
+      })
+    )
+    return
+  }
   if (exporting.value) return
   exporting.value = true
   try {
@@ -36,6 +51,7 @@ const tabs = [
 ]
 
 onMounted(() => {
+  fetchMySubscription()
   const params = new URLSearchParams(window.location.search)
   const tab = params.get('tab')
   if (tab === 'notes') {

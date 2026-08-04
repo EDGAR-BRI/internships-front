@@ -87,7 +87,7 @@ function handleBackdropClick(e: MouseEvent) {
               <div class="flex items-center gap-2 mb-2 pr-10">
                 <button
                   @click="handleStatusToggle"
-                  class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors"
+                  class="status-toggle-btn inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium border transition-all hover:scale-105 active:scale-95 hover:ring-2 hover:ring-accent/40"
                   :class="statusPillClasses[entry.status]"
                   :title="`Cambiar estado: ${statusLabels[entry.status]}`"
                 >
@@ -284,3 +284,30 @@ function handleBackdropClick(e: MouseEvent) {
         </div>
     </div>
 </template>
+
+<style scoped>
+@keyframes status-vibrate {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-2px) rotate(-4deg);
+  }
+  40% {
+    transform: translateX(2px) rotate(4deg);
+  }
+  60% {
+    transform: translateX(-2px) rotate(-3deg);
+  }
+  80% {
+    transform: translateX(2px) rotate(3deg);
+  }
+}
+
+.status-toggle-btn {
+  animation: status-vibrate 0.45s ease-in-out 2;
+  animation-delay: 0.4s;
+  cursor: pointer;
+}
+</style>

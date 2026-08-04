@@ -19,10 +19,12 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 export class ApiError extends Error {
   status?: number
-  constructor(message: string, status?: number) {
+  code?: string
+  constructor(message: string, status?: number, code?: string) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.code = code
   }
 }
 
@@ -91,7 +93,16 @@ export async function apiFetch<T = any>(path: string, options: ApiOptions = {}):
         data.error ||
         (data.errors && data.errors[0]?.message) ||
         'Error en la petición'
-      throw new ApiError(errorMessage, res.status)
+
+      if (res.status === 429 && data.code === 'DAILY_LIMIT') {
+        window.dispatchEvent(
+          new CustomEvent('daily-limit-reached', {
+            detail: { message: errorMessage, resource: data.resource, used: data.used, limit: data.limit },
+          })
+        )
+      }
+
+      throw new ApiError(errorMessage, res.status, data.code)
     }
 
     return unwrapData(data) as T
