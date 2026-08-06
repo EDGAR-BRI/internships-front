@@ -117,14 +117,26 @@ watch(
   }
 )
 
-watch(datStart, (val) => {
-  if (!props.entry && val && settings.value) {
-    const computed = computeWeek(settings.value.startDate, val, settings.value.skippedWeeks)
+function computeWeekForStart() {
+  if (!props.entry && datStart.value && settings.value) {
+    const computed = computeWeek(settings.value.startDate, datStart.value, settings.value.skippedWeeks)
     if (computed !== null) {
       week.value = computed
     }
   }
+}
+
+watch(datStart, () => {
+  computeWeekForStart()
 })
+
+watch(
+  settings,
+  () => {
+    computeWeekForStart()
+  },
+  { immediate: true }
+)
 
 function resizeTextarea(id: string) {
   nextTick(() => {
