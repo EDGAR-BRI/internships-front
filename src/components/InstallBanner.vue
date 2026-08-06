@@ -7,6 +7,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const DISMISS_KEY = 'pwa_install_dismissed'
+const REMIND_KEY = 'pwa_install_remind_at'
+const REMIND_MS = 10 * 60 * 1000 // 10 minutos
 
 const visible = ref(false)
 const canInstall = ref(false)
@@ -31,7 +33,11 @@ function isDesktop(): boolean {
 
 function maybeShow() {
   if (isStandalone()) return
-  if (typeof localStorage !== 'undefined' && localStorage.getItem(DISMISS_KEY)) return
+  if (typeof localStorage === 'undefined') return
+  if (localStorage.getItem(DISMISS_KEY)) return
+
+  const remindAt = Number(localStorage.getItem(REMIND_KEY) || 0)
+  if (remindAt > Date.now()) return
 
   if (isIos()) {
     showIos.value = true
@@ -76,10 +82,18 @@ async function handleInstall() {
   }
 }
 
+function remindLater() {
+  visible.value = false
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(REMIND_KEY, String(Date.now() + REMIND_MS))
+  }
+}
+
 function dismiss() {
   visible.value = false
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem(DISMISS_KEY, '1')
+    localStorage.removeItem(REMIND_KEY)
   }
 }
 
@@ -142,6 +156,13 @@ onMounted(() => {
         class="bg-accent hover:bg-accent-hover text-white text-xs font-medium px-4 py-1.5 rounded-md transition-colors"
       >
         Instalar
+      </button>
+      <button
+        v-else
+        @click="remindLater"
+        class="bg-accent hover:bg-accent-hover text-white text-xs font-medium px-4 py-1.5 rounded-md transition-colors"
+      >
+        Recordar más tarde
       </button>
     </div>
   </div>
