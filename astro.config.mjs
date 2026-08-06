@@ -94,6 +94,9 @@ export default defineConfig({
     define: {
       __VUE_PROD_DEVTOOLS__: 'false',
     },
+    ssr: {
+      noExternal: ['pinia'],
+    },
   },
   server: { port: 5173 },
 })
