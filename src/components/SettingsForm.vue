@@ -16,6 +16,8 @@ const skippedWeeksInput = ref('')
 const workType = ref<'full' | 'partial' | ''>('')
 const workHoursPerDay = ref<number | ''>('')
 const daysPerWeek = ref<number | ''>('')
+const workStartTime = ref('')
+const workEndTime = ref('')
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref(false)
@@ -29,6 +31,8 @@ onMounted(async () => {
     workType.value = settings.value.workType || ''
     workHoursPerDay.value = settings.value.workHoursPerDay ?? ''
     daysPerWeek.value = settings.value.daysPerWeek ?? 5
+    workStartTime.value = settings.value.workStartTime || ''
+    workEndTime.value = settings.value.workEndTime || ''
   }
 })
 
@@ -71,6 +75,8 @@ async function handleSubmit() {
       payload.workHoursPerDay = 8
     }
     payload.daysPerWeek = Number(daysPerWeek.value) || 5
+    if (workStartTime.value) payload.workStartTime = workStartTime.value
+    if (workEndTime.value) payload.workEndTime = workEndTime.value
     await updateSettings(payload)
 
     await fetchLogEntries()
@@ -197,6 +203,33 @@ async function handleSubmit() {
         class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
       />
       <p class="text-xs text-text-muted">Cuántos días trabajas a la semana. Se usa para calcular la fecha de fin estimada.</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div class="space-y-1.5">
+        <label for="work-start-time" class="block text-sm font-medium text-text">
+          Hora de entrada
+        </label>
+        <input
+          id="work-start-time"
+          v-model="workStartTime"
+          type="time"
+          class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+        />
+        <p class="text-xs text-text-muted">Se usa en el reporte de asistencia.</p>
+      </div>
+      <div class="space-y-1.5">
+        <label for="work-end-time" class="block text-sm font-medium text-text">
+          Hora de salida
+        </label>
+        <input
+          id="work-end-time"
+          v-model="workEndTime"
+          type="time"
+          class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+        />
+        <p class="text-xs text-text-muted">Se usa en el reporte de asistencia.</p>
+      </div>
     </div>
 
     <button

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useAttendances, type Attendance } from '../composables/useAttendances'
+import { useSettings } from '../composables/useSettings'
 
 const props = defineProps<{
   attendance: Attendance | null
@@ -13,13 +14,23 @@ const emit = defineEmits<{
 }>()
 
 const { updateAttendance } = useAttendances()
+const { settings } = useSettings()
 
 const date = ref('')
 const isFullDay = ref(true)
 const hours = ref<number | ''>('')
+const checkIn = ref('')
+const checkOut = ref('')
 const mode = ref<'on_site' | 'remote'>('on_site')
 const saving = ref(false)
 const error = ref('')
+
+function addHoursToTime(time: string, h: number): string {
+  const [hh, mm] = time.split(':').map(Number)
+  if (isNaN(hh) || isNaN(mm)) return ''
+  const total = (hh * 60 + mm + h * 60) % 1440
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
 
 watch(
   () => [props.isOpen, props.attendance],
@@ -29,6 +40,20 @@ watch(
       isFullDay.value = !!props.attendance.isFullDay
       hours.value = props.attendance.isFullDay ? '' : props.attendance.hours
       mode.value = props.attendance.mode ?? 'on_site'
+      checkIn.value = props.attendance.checkIn
+        ? new Date(props.attendance.checkIn).toLocaleTimeString('es-MX', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'America/Mexico_City',
+          })
+        : settings.value?.workStartTime || ''
+      checkOut.value = props.attendance.checkOut
+        ? new Date(props.attendance.checkOut).toLocaleTimeString('es-MX', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'America/Mexico_City',
+          })
+        : ''
       error.value = ''
     }
   }
@@ -44,6 +69,8 @@ async function handleSave() {
       isFullDay?: boolean
       hours?: number
       mode?: Attendance['mode']
+      checkIn?: string
+      checkOut?: string
     } = {
       date: date.value,
       mode: mode.value,
@@ -59,6 +86,8 @@ async function handleSave() {
       }
       payload.isFullDay = false
       payload.hours = hrs
+      if (checkIn.value) payload.checkIn = checkIn.value
+      if (checkOut.value) payload.checkOut = checkOut.value
     }
 
     const updated = await updateAttendance(props.attendance.id, payload)
@@ -153,6 +182,26 @@ function handleKeydown(e: KeyboardEvent) {
                   placeholder="Ej. 4"
                   class="w-full bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 />
+              </div>
+
+              <div v-if="!isFullDay" class="grid grid-cols-2 gap-3">
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-text-secondary">Hora de entrada</label>
+                  <input
+                    v-model="checkIn"
+                    type="time"
+                    class="w-full bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                  />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-text-secondary">Hora de salida</label>
+                  <input
+                    v-model="checkOut"
+                    type="time"
+                    @change="checkOut = checkOut || addHoursToTime(checkIn, Number(hours) || 0)"
+                    class="w-full bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                  />
+                </div>
               </div>
 
               <div class="space-y-1.5">

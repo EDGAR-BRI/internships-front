@@ -29,6 +29,9 @@ function openSettingsModal() {
 const mode = ref<'full' | 'partial'>('full')
 const selectedDate = ref(todayInMexicoCity())
 const partialHours = ref<number | ''>('')
+const partialStartTime = ref('')
+const partialEndTime = ref('')
+const endTimeTouched = ref(false)
 const actionLoading = ref(false)
 const actionError = ref('')
 
@@ -69,10 +72,37 @@ const partialDone = computed(() => {
 watch(selectedAtt, (att) => {
   if (att && att.hours > 0 && !att.isFullDay) {
     partialHours.value = att.hours
+    if (att.checkIn) partialStartTime.value = formatTime(att.checkIn)
+    if (att.checkOut) partialEndTime.value = formatTime(att.checkOut)
+    endTimeTouched.value = !!att.checkOut
   } else {
     partialHours.value = summary.value?.fullDayHours || settings.value?.workHoursPerDay || 8
+    partialStartTime.value = settings.value?.workStartTime || '08:00'
+    partialEndTime.value = ''
+    endTimeTouched.value = false
   }
 })
+
+watch(partialHours, () => {
+  if (partialStartTime.value && partialHours.value && !endTimeTouched.value) {
+    partialEndTime.value = addHoursToTime(partialStartTime.value, Number(partialHours.value))
+  }
+})
+
+watch(partialStartTime, () => {
+  if (partialStartTime.value && partialHours.value && !endTimeTouched.value) {
+    partialEndTime.value = addHoursToTime(partialStartTime.value, Number(partialHours.value))
+  }
+})
+
+function addHoursToTime(time: string, hours: number): string {
+  const [h, m] = time.split(':').map(Number)
+  if (isNaN(h) || isNaN(m)) return ''
+  const total = (h * 60 + m + hours * 60) % 1440
+  const hh = String(Math.floor(total / 60)).padStart(2, '0')
+  const mm = String(total % 60).padStart(2, '0')
+  return `${hh}:${mm}`
+}
 
 const hasSettings = computed(() => !!summary.value?.targetEndDate)
 
@@ -210,8 +240,15 @@ async function handlePartial() {
       actionError.value = 'Ingresa una cantidad válida de horas'
       return
     }
-    await registerPartial(selectedDate.value, hours, attendanceMode.value)
+    await registerPartial(
+      selectedDate.value,
+      hours,
+      attendanceMode.value,
+      partialStartTime.value || undefined,
+      partialEndTime.value || undefined
+    )
     partialHours.value = ''
+    endTimeTouched.value = false
     await fetchSummary()
   } catch (e: any) {
     actionError.value = e.message || 'Error'
@@ -489,6 +526,34 @@ onUnmounted(() => {
           </button>
         </div>
         <p class="text-xs text-text-muted">Máximo {{ summary?.fullDayHours || 8 }}h (tu jornada configurada).</p>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <label for="partial-start-time" class="block text-xs font-medium text-text-secondary">
+              Hora de entrada
+            </label>
+            <input
+              id="partial-start-time"
+              v-model="partialStartTime"
+              type="time"
+              class="w-full bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            />
+          </div>
+          <div class="space-y-1.5">
+            <label for="partial-end-time" class="block text-xs font-medium text-text-secondary">
+              Hora de salida
+            </label>
+            <input
+              id="partial-end-time"
+              v-model="partialEndTime"
+              type="time"
+              @change="endTimeTouched = true"
+              class="w-full bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            />
+          </div>
+        </div>
+        <p class="text-xs text-text-muted">
+          Se calcula automáticamente: salida = entrada + horas. Puedes ajustarla manualmente.
+        </p>
         <div v-if="partialDone" class="bg-success/10 border border-success/20 text-accent text-sm rounded-md p-3">
           Ya registraste {{ selectedAtt?.hours }}h parciales para esta fecha.
         </div>
