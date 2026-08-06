@@ -71,6 +71,14 @@ const heatCells = computed(() => {
   const endDate = new Date(today + 'T00:00:00')
   if (isNaN(startDate.getTime()) || startDate > endDate) return []
 
+  // Extender hasta el final de la semana actual (domingo) para mostrar
+  // los días restantes en gris, como GitHub
+  const todayDayIndex = (endDate.getDay() + 6) % 7
+  const daysUntilSunday = 6 - todayDayIndex
+  if (daysUntilSunday > 0) {
+    endDate.setDate(endDate.getDate() + daysUntilSunday)
+  }
+
   const cur = new Date(startDate)
   let guard = 0
   while (cur <= endDate && guard < 1100) {
