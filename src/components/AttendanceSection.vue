@@ -386,7 +386,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Fechas fin -->
-      <div v-if="summary.targetEndDate || summary.estimatedEndDate || summary.pace.daysPerWeek > 0" class="bg-surface border border-border rounded-lg p-4 space-y-1 sm:col-span-2">
+      <div v-if="summary.targetEndDate || summary.estimatedEndDate || summary.pace.daysPerWeek > 0" class="bg-surface border border-border rounded-lg p-4 space-y-1">
         <h3 class="text-sm font-semibold text-text mb-2">Fechas de fin</h3>
         <div class="flex flex-wrap gap-4">
           <div v-if="summary.targetEndDate" class="space-y-0.5">
