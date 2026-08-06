@@ -1,0 +1,11 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro'
+import AuthGuard from '../../components/AuthGuard.vue'
+import CommunityView from '../../components/CommunityView.vue'
+---
+
+<AuthLayout title="Comunidad - Internship Tracker">
+  <AuthGuard client:load>
+    <CommunityView client:load />
+  </AuthGuard>
+</AuthLayout>

@@ -7,6 +7,7 @@ const { user, token, updateUser } = useAuth()
 
 const fullName = ref('')
 const avatarUrl = ref('')
+const profilePublic = ref(false)
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref(false)
@@ -14,6 +15,7 @@ const saveSuccess = ref(false)
 onMounted(() => {
   fullName.value = user.value?.fullName || ''
   avatarUrl.value = user.value?.avatarUrl || ''
+  profilePublic.value = !!user.value?.profilePublic
 })
 
 async function handleSubmit() {
@@ -26,6 +28,7 @@ async function handleSubmit() {
       {
         fullName: fullName.value.trim() || null,
         avatarUrl: avatarUrl.value.trim() || null,
+        profilePublic: profilePublic.value,
       },
       token.value || undefined
     )
@@ -76,6 +79,21 @@ async function handleSubmit() {
         placeholder="https://..."
         class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
       />
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="flex items-center justify-between gap-3 cursor-pointer select-none">
+        <span class="block text-sm font-medium text-text">Perfil público</span>
+        <input
+          v-model="profilePublic"
+          type="checkbox"
+          class="w-4 h-4 rounded accent-[var(--color-accent)]"
+        />
+      </label>
+      <p class="text-xs text-text-muted">
+        Actívalo para aparecer en el ranking de la comunidad y que otros puedan ver tus notas.
+        Solo se muestra tu nombre, nunca tu correo.
+      </p>
     </div>
 
     <button

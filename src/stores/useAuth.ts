@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string
   role: string
   avatarUrl: string | null
+  profilePublic?: boolean
   initials?: string
 }
 
