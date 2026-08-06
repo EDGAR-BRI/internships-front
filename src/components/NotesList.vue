@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useNotes, type Note } from '../composables/useNotes'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
-import { NOTE_TAGS } from '../utils/noteTags'
+import { NOTE_TAGS, tagLabel } from '../utils/noteTags'
 import NoteCard from './NoteCard.vue'
 
 const NoteModal = defineAsyncComponent(() => import('./NoteModal.vue'))
@@ -30,6 +30,15 @@ const searchQuery = ref('')
 const dateFilter = ref<'all' | 'today' | 'week' | 'month'>('all')
 const noteTypeFilter = ref<'all' | 'standalone' | 'activity'>('all')
 const tagFilter = ref<string>('all')
+
+const availableTags = computed(() => {
+  const present = new Set(notes.value.map((n) => n.tag).filter(Boolean) as string[])
+  for (const t of NOTE_TAGS) present.add(t.value)
+  return Array.from(present).map((value) => ({
+    value,
+    label: tagLabel(value),
+  }))
+})
 
 const filteredNotes = computed(() => {
   let result = notes.value
@@ -191,7 +200,7 @@ function closeDetailModal() {
         Todas
       </button>
       <button
-        v-for="t in NOTE_TAGS"
+        v-for="t in availableTags"
         :key="t.value"
         @click="tagFilter = t.value"
         class="px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors"

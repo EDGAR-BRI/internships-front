@@ -4,7 +4,7 @@ import type { Note } from '../composables/useNotes'
 import { useNotes } from '../composables/useNotes'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
 import { appendDictatedText } from '../composables/useSpeechRecognition'
-import { NOTE_TAGS, type NoteTag } from '../utils/noteTags'
+import { NOTE_TAGS, NOTE_TAG_VALUES, type NoteTag } from '../utils/noteTags'
 import DictationButton from './DictationButton.vue'
 
 const props = defineProps<{
@@ -24,7 +24,7 @@ const { notes, fetchNotes } = useNotes()
 
 const title = ref('')
 const content = ref('')
-const tag = ref<NoteTag>('general')
+const tag = ref<string>('general')
 const selectedLogEntryId = ref<number | null>(null)
 const noteDate = ref('')
 const activitySearch = ref('')
@@ -32,6 +32,21 @@ const showDropdown = ref(false)
 const saving = ref(false)
 const saveError = ref('')
 const isViewing = ref(false)
+
+function isPresetTag(v: string): boolean {
+  return NOTE_TAG_VALUES.includes(v)
+}
+
+const customTagInput = computed({
+  get: () => (isPresetTag(tag.value) ? '' : tag.value),
+  set: (v: string) => {
+    tag.value = v.trim()
+  },
+})
+
+function selectTag(v: string) {
+  tag.value = v
+}
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr)
@@ -170,6 +185,8 @@ async function handleSubmit() {
   saving.value = true
   saveError.value = ''
 
+  const normalizedTag = tag.value.trim() || 'general'
+
   try {
     const { useNotes } = await import('../composables/useNotes')
     const { createNote, updateNote } = useNotes()
@@ -179,7 +196,7 @@ async function handleSubmit() {
       savedNote = await updateNote(props.note.id, {
         title: title.value.trim() || null,
         content: content.value.trim(),
-        tag: tag.value,
+        tag: normalizedTag,
         logEntryId: selectedLogEntryId.value,
         date: noteDate.value || null,
       })
@@ -187,7 +204,7 @@ async function handleSubmit() {
       savedNote = await createNote({
         title: title.value.trim() || null,
         content: content.value.trim(),
-        tag: tag.value,
+        tag: normalizedTag,
         logEntryId: selectedLogEntryId.value ?? null,
         date: noteDate.value || null,
       })
@@ -226,16 +243,15 @@ function autoResize(e: Event) {
 </script>
 
 <template>
-  <Teleport to="body">
+  <div
+      v-if="isOpen"
+      class="fixed inset-0 z-[60] overflow-y-auto bg-black/60 backdrop-blur-sm"
+      @click="handleBackdropClick"
+      @keydown="handleKeydown"
+    >
       <div
-        v-if="isOpen"
-        class="fixed inset-0 z-[60] overflow-y-auto bg-black/60 backdrop-blur-sm"
-        @click="handleBackdropClick"
-        @keydown="handleKeydown"
+        class="min-h-full flex items-center justify-center p-4 sm:p-6"
       >
-        <div
-          class="min-h-full flex items-center justify-center p-4 sm:p-6"
-        >
         <div
           class="bg-surface border border-border rounded-lg w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col overflow-hidden my-auto modal-open"
           @click.stop
@@ -354,7 +370,7 @@ function autoResize(e: Event) {
                     v-for="t in NOTE_TAGS"
                     :key="t.value"
                     type="button"
-                    @click="tag = t.value"
+                    @click="selectTag(t.value)"
                     class="px-3 py-1.5 rounded-md text-xs font-medium border transition-colors"
                     :class="tag === t.value
                       ? 'bg-accent text-white border-accent'
@@ -363,6 +379,13 @@ function autoResize(e: Event) {
                     {{ t.label }}
                   </button>
                 </div>
+                <input
+                  v-model="customTagInput"
+                  type="text"
+                  maxlength="30"
+                  placeholder="O escribe tu propia etiqueta (opcional)"
+                  class="w-full box-border bg-surface border border-border rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent min-w-0"
+                />
               </div>
 
               <div class="space-y-1.5 min-w-0">
@@ -435,9 +458,8 @@ function autoResize(e: Event) {
             </div>
           </form>
         </div>
-        </div>
       </div>
-  </Teleport>
+  </div>
 </template>
 
 <style scoped>

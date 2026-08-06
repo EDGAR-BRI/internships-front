@@ -9,9 +9,17 @@ export type NoteTag = (typeof NOTE_TAGS)[number]['value']
 
 export const NOTE_TAG_VALUES: string[] = NOTE_TAGS.map((t) => t.value)
 
+const PRESET_LABELS: Record<string, string> = {
+  general: 'General',
+  aprendizaje: 'Aprendizaje',
+  sentimientos: 'Sentimientos',
+  idea: 'Idea',
+}
+
 export function tagLabel(value: string | null | undefined): string {
-  const tag = NOTE_TAGS.find((t) => t.value === value)
-  return tag?.label ?? 'General'
+  if (!value || !value.trim()) return 'General'
+  if (PRESET_LABELS[value]) return PRESET_LABELS[value]
+  return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
 export function tagClasses(value: string | null | undefined): string {
