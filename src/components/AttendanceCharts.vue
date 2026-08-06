@@ -2,11 +2,14 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useAttendances } from '../composables/useAttendances'
 import { useSettings } from '../composables/useSettings'
+import AttendanceCalendar from './AttendanceCalendar.vue'
 
 const props = withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
 
 const { attendances, summary, fetchAttendances, fetchSummary } = useAttendances()
 const { settings, fetchSettings } = useSettings()
+
+const viewMode = ref<'heatmap' | 'calendar'>('heatmap')
 
 const containerRef = ref<HTMLDivElement | null>(null)
 const containerW = ref(0)
@@ -129,7 +132,7 @@ const cellSize = computed(() => {
   const width = containerW.value
   if (!width || totalWeeks.value <= 0) return 12
   const max = Math.floor((width - LEFT_W - CELL_GAP) / totalWeeks.value - CELL_GAP)
-  return Math.max(8, Math.min(30, max))
+  return Math.max(8, max)
 })
 
 const fontM = computed(() => Math.max(10, Math.round(cellSize.value * 0.75)))
@@ -170,21 +173,48 @@ const modeSplit = computed(() => {
 
 <template>
   <div class="grid grid-cols-1 gap-4">
-    <!-- Heatmap -->
+    <!-- Días activos -->
     <div class="bg-surface border border-border rounded-lg p-4 space-y-3">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold text-text">Días activos</h3>
-        <div class="flex items-center gap-1 text-[10px] text-text-muted">
-          <span>Menos</span>
-          <span
-            v-for="(c, i) in HEAT_COLORS"
-            :key="i"
-            class="w-2.5 h-2.5 rounded-[2px] inline-block border border-border"
-            :style="{ background: c }"
-          ></span>
-          <span>Más</span>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1 bg-overlay border border-border rounded-md p-0.5">
+            <button
+              @click="viewMode = 'heatmap'"
+              class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
+              :class="viewMode === 'heatmap' ? 'bg-accent text-white' : 'text-text-muted hover:text-text'"
+            >
+              Heatmap
+            </button>
+            <button
+              @click="viewMode = 'calendar'"
+              class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
+              :class="viewMode === 'calendar' ? 'bg-accent text-white' : 'text-text-muted hover:text-text'"
+            >
+              Calendario
+            </button>
+          </div>
+          <div v-if="viewMode === 'heatmap'" class="hidden sm:flex items-center gap-1 text-[10px] text-text-muted">
+            <span>Menos</span>
+            <span
+              v-for="(c, i) in HEAT_COLORS"
+              :key="i"
+              class="w-2.5 h-2.5 rounded-[2px] inline-block border border-border"
+              :style="{ background: c }"
+            ></span>
+            <span>Más</span>
+          </div>
         </div>
       </div>
+
+      <AttendanceCalendar
+        v-if="viewMode === 'calendar'"
+        :attendances="attendances"
+        :settings="settings"
+        :summary="summary"
+      />
+
+      <template v-else>
       <div v-if="heatCells.length === 0" class="text-sm text-text-muted">
         Configura el inicio de tu pasantía para ver el calendario de actividad.
       </div>
@@ -238,6 +268,7 @@ const modeSplit = computed(() => {
           </text>
         </svg>
       </div>
+      </template>
     </div>
 
     <!-- Modalidad -->
