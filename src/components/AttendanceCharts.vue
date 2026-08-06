@@ -214,7 +214,31 @@ const modeSplit = computed(() => {
 <template>
   <div class="grid grid-cols-1 gap-4">
     <!-- Días activos -->
-    <div class="bg-surface border border-border rounded-lg p-4 space-y-3">
+    <div v-if="viewMode === 'calendar'" class="space-y-3">
+      <div v-if="compact" class="flex items-center gap-1 bg-overlay border border-border rounded-md p-0.5 w-fit">
+        <button
+          @click="viewMode = 'heatmap'"
+          class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
+          :class="viewMode === 'heatmap' ? 'bg-accent text-white' : 'text-text-muted hover:text-text'"
+        >
+          Heatmap
+        </button>
+        <button
+          @click="viewMode = 'calendar'"
+          class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
+          :class="viewMode === 'calendar' ? 'bg-accent text-white' : 'text-text-muted hover:text-text'"
+        >
+          Calendario
+        </button>
+      </div>
+      <AttendanceCalendar
+        :attendances="attendances"
+        :settings="settings"
+        :summary="summary"
+      />
+    </div>
+
+    <div v-else class="bg-surface border border-border rounded-lg p-4 space-y-3">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold text-text">Días activos</h3>
         <div class="flex items-center gap-3">
@@ -247,14 +271,6 @@ const modeSplit = computed(() => {
         </div>
       </div>
 
-      <AttendanceCalendar
-        v-if="viewMode === 'calendar'"
-        :attendances="attendances"
-        :settings="settings"
-        :summary="summary"
-      />
-
-      <template v-else>
       <div ref="heatmapRef" class="w-full">
       <div v-if="heatCells.length === 0" class="text-sm text-text-muted">
         Configura el inicio de tu pasantía para ver el calendario de actividad.
@@ -364,7 +380,6 @@ const modeSplit = computed(() => {
           Posible final al ritmo actual
         </span>
       </div>
-      </template>
     </div>
 
     <!-- Modalidad -->
