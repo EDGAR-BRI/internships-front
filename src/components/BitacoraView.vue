@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import LogEntryList from './LogEntryList.vue'
 import NotesList from './NotesList.vue'
 import ImportBitacoraModal from './ImportBitacoraModal.vue'
+import FeatureTour from './FeatureTour.vue'
 import { useLogEntries } from '../composables/useLogEntries'
 import { useNotes } from '../composables/useNotes'
 import { useSubscription } from '../composables/useSubscription'
@@ -50,6 +51,27 @@ const tabs = [
   { value: 'notes' as const, label: 'Notas' },
 ]
 
+const tourSteps = [
+  {
+    target: '[data-tour="bitacora-tabs"]',
+    title: 'Actividades y notas',
+    text: 'Tu bitácora se organiza en dos pestañas: actividades (tareas y aprendizajes) y notas (apuntes sueltos).',
+    placement: 'bottom' as const,
+  },
+  {
+    target: '[data-tour="bitacora-activities"]',
+    title: 'Registra tus actividades',
+    text: 'Cada actividad tiene estado (pendiente, en curso, terminada), semana de pasantía y detalle de aprendizajes. Marca el check para cambiar su estado.',
+    placement: 'top' as const,
+  },
+  {
+    target: '[data-tour="bitacora-import"]',
+    title: 'Importar y exportar',
+    text: 'Puedes importar tu bitácora desde un archivo .md o exportarla para llevarla contigo.',
+    placement: 'bottom' as const,
+  },
+]
+
 onMounted(() => {
   fetchMySubscription()
   const params = new URLSearchParams(window.location.search)
@@ -72,6 +94,7 @@ onMounted(() => {
       <div class="flex items-center gap-2">
         <button
           @click="importModalOpen = true"
+          data-tour="bitacora-import"
           class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-overlay text-text-secondary hover:text-text hover:bg-hover transition-colors"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +115,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="flex items-center gap-2 border-b border-border pb-2">
+    <div data-tour="bitacora-tabs" class="flex items-center gap-2 border-b border-border pb-2">
       <button
         v-for="tab in tabs"
         :key="tab.value"
@@ -124,7 +147,7 @@ onMounted(() => {
       </button>
     </div>
 
-    <div v-if="activeTab === 'activities'">
+    <div v-if="activeTab === 'activities'" data-tour="bitacora-activities">
       <LogEntryList
         :enable-search="true"
         :enable-date-filter="true"
@@ -144,5 +167,7 @@ onMounted(() => {
       :is-open="importModalOpen"
       @close="importModalOpen = false"
     />
+
+    <FeatureTour :steps="tourSteps" storage-key="tour:bitacora" />
   </div>
 </template>

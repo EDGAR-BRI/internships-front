@@ -7,6 +7,7 @@ import AttendanceCalendar from './AttendanceCalendar.vue'
 import AttendanceEditModal from './AttendanceEditModal.vue'
 import AttendanceCharts from './AttendanceCharts.vue'
 import AttendanceModeBar from './AttendanceModeBar.vue'
+import FeatureTour from './FeatureTour.vue'
 
 const {
   attendances,
@@ -150,6 +151,27 @@ const canDelete = computed(() => {
 function todayInMexicoCity(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' })
 }
+
+const tourSteps = [
+  {
+    target: '[data-tour="attendance-register"]',
+    title: 'Registra tu asistencia',
+    text: 'Elige la fecha y registra tu entrada. Puedes marcar día completo o parcial, y si trabajas presencial o remoto.',
+    placement: 'top' as const,
+  },
+  {
+    target: '[data-tour="attendance-mode"]',
+    title: 'Día completo o parcial',
+    text: 'Con "Día completo" se cuentan automáticamente tus horas de jornada. Con "Parcial" indicas las horas exactas que trabajaste.',
+    placement: 'top' as const,
+  },
+  {
+    target: '[data-tour="attendance-history"]',
+    title: 'Historial y calendario',
+    text: 'Revisa tus asistencias pasadas en lista o en vista de calendario. Puedes editar o eliminar cada registro.',
+    placement: 'top' as const,
+  },
+]
 
 function formatTime(iso: string | null): string {
   if (!iso) return '—'
@@ -436,7 +458,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Registro -->
-    <div class="bg-surface border border-border rounded-lg p-4 space-y-4">      <div class="flex items-center justify-between">
+    <div data-tour="attendance-register" class="bg-surface border border-border rounded-lg p-4 space-y-4">      <div class="flex items-center justify-between">
         <h2 class="text-sm font-semibold text-text">Registrar asistencia</h2>
       </div>
 
@@ -470,7 +492,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="flex gap-2">
+      <div data-tour="attendance-mode" class="flex gap-2">
         <button
           @click="mode = 'full'"
           :class="mode === 'full' ? 'bg-accent text-white' : 'bg-overlay text-text-secondary hover:text-text'"
@@ -567,7 +589,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Lista reciente -->
-    <div class="space-y-3">
+    <div data-tour="attendance-history" class="space-y-3">
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-semibold text-text">Historial</h2>
         <div class="flex items-center gap-1 bg-overlay border border-border rounded-md p-0.5">
@@ -716,6 +738,8 @@ onUnmounted(() => {
       @close="closeEditModal"
       @saved="handleEditSaved"
     />
+
+    <FeatureTour :steps="tourSteps" storage-key="tour:attendance" />
   </div>
 </template>
 
