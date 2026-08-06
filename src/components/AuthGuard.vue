@@ -6,7 +6,7 @@ import RubikLoader from './RubikLoader.vue'
 const { restoreSession, loadFromStorage, isAuthenticated } = useAuth()
 const ready = ref(false)
 
-const MIN_LOADER_MS = 500
+const MIN_LOADER_MS = 1000
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))

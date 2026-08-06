@@ -6,7 +6,14 @@ import RubikLoader from './RubikLoader.vue'
 const { setAuth } = useAuth()
 const visibleError = ref<string | null>(null)
 
-onMounted(() => {
+const MIN_LOADER_MS = 1000
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+onMounted(async () => {
+  const started = Date.now()
   const params = new URLSearchParams(window.location.search)
   const token = params.get('token')
   let userStr = params.get('user')
@@ -39,6 +46,10 @@ onMounted(() => {
   try {
     const user = JSON.parse(userStr)
     setAuth(user, token)
+    const elapsed = Date.now() - started
+    if (elapsed < MIN_LOADER_MS) {
+      await delay(MIN_LOADER_MS - elapsed)
+    }
     window.location.replace('/dashboard')
   } catch (e) {
     visibleError.value = `Parse failed. userStr: ${userStr.slice(0, 200)}`

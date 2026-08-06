@@ -110,10 +110,19 @@ function faceColor(x: number, y: number, z: number, faceIndex: number): string {
 
 @keyframes rubik-spin {
   0% {
-    transform: rotateX(-25deg) rotateY(0deg);
+    transform: rotateX(-35deg) rotateY(0deg);
+  }
+  25% {
+    transform: rotateX(-15deg) rotateY(90deg);
+  }
+  50% {
+    transform: rotateX(-35deg) rotateY(180deg);
+  }
+  75% {
+    transform: rotateX(-15deg) rotateY(270deg);
   }
   100% {
-    transform: rotateX(-25deg) rotateY(360deg);
+    transform: rotateX(-35deg) rotateY(360deg);
   }
 }
 
@@ -125,16 +134,16 @@ function faceColor(x: number, y: number, z: number, faceIndex: number): string {
 }
 
 .row-1 {
-  animation: layer-spin 7s ease-in-out 0s infinite;
+  animation: layer-spin-y 7s ease-in-out 0s infinite;
 }
 .row-2 {
-  animation: layer-spin 7s ease-in-out 2.33s infinite;
+  animation: layer-spin-x 7s ease-in-out 2.33s infinite;
 }
 .row-3 {
-  animation: layer-spin 7s ease-in-out 4.66s infinite;
+  animation: layer-spin-z 7s ease-in-out 4.66s infinite;
 }
 
-@keyframes layer-spin {
+@keyframes layer-spin-y {
   0% {
     transform: rotateY(0deg);
   }
@@ -143,6 +152,30 @@ function faceColor(x: number, y: number, z: number, faceIndex: number): string {
   }
   100% {
     transform: rotateY(360deg);
+  }
+}
+
+@keyframes layer-spin-x {
+  0% {
+    transform: rotateX(0deg);
+  }
+  33% {
+    transform: rotateX(360deg);
+  }
+  100% {
+    transform: rotateX(360deg);
+  }
+}
+
+@keyframes layer-spin-z {
+  0% {
+    transform: rotateZ(0deg);
+  }
+  33% {
+    transform: rotateZ(360deg);
+  }
+  100% {
+    transform: rotateZ(360deg);
   }
 }
 

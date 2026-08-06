@@ -14,6 +14,12 @@ const confirmPassword = ref('')
 const loading = ref(false)
 const error = ref('')
 
+const MIN_LOADER_MS = 1000
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 async function handleSubmit() {
   if (!fullName.value || !email.value || !password.value) {
     error.value = 'Todos los campos son obligatorios'
@@ -32,6 +38,7 @@ async function handleSubmit() {
 
   loading.value = true
   error.value = ''
+  const started = Date.now()
 
   try {
     const data = await api.post('/auth/signup', {
@@ -40,6 +47,11 @@ async function handleSubmit() {
       password: password.value,
       passwordConfirmation: confirmPassword.value,
     })
+
+    const elapsed = Date.now() - started
+    if (elapsed < MIN_LOADER_MS) {
+      await delay(MIN_LOADER_MS - elapsed)
+    }
 
     setAuth(data.user, data.token)
     window.location.href = '/dashboard'
