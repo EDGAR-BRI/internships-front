@@ -32,6 +32,7 @@ const sortDir = ref<'asc' | 'desc'>('asc')
 const expandedId = ref<number | null>(null)
 const modal = ref<{ type: 'role' | 'delete'; user: AdminUser } | null>(null)
 const busy = ref(false)
+const deleteConfirmText = ref('')
 
 const planSlugFor = ref<Record<number, string>>({})
 const expiresFor = ref<Record<number, string>>({})
@@ -207,13 +208,30 @@ function openRoleModal(u: AdminUser) {
 }
 
 function openDeleteModal(u: AdminUser) {
+  deleteConfirmText.value = ''
   modal.value = { type: 'delete', user: u }
 }
 
 function closeModal() {
   if (busy.value) return
   modal.value = null
+  deleteConfirmText.value = ''
 }
+
+function normalizeInput(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+}
+
+const canDeleteUser = computed(() => {
+  if (!modal.value || modal.value.type !== 'delete') return false
+  const user = modal.value.user
+  const expected = user.fullName || user.email
+  return normalizeInput(deleteConfirmText.value) === normalizeInput(expected)
+})
 
 async function confirmModalAction() {
   if (!modal.value) return
@@ -232,6 +250,7 @@ async function confirmModalAction() {
       expandedId.value = null
     }
     modal.value = null
+    deleteConfirmText.value = ''
   }
 }
 
@@ -758,6 +777,17 @@ const usageLabels: Record<string, string> = {
                   <span class="font-semibold text-text">{{ modal.user.fullName || modal.user.email }}</span>?
                   Se borrarán todas sus asistencias, notas y actividades. Esta acción no se puede deshacer.
                 </p>
+                <div class="mt-4">
+                  <label class="block text-xs text-text-muted mb-1.5">
+                    Para confirmar, escribe el nombre del usuario:
+                  </label>
+                  <input
+                    v-model="deleteConfirmText"
+                    type="text"
+                    :placeholder="modal.user.fullName || modal.user.email"
+                    class="w-full bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                  />
+                </div>
               </template>
               <template v-else>
                 <p class="text-sm text-text-secondary mt-2">
@@ -781,8 +811,8 @@ const usageLabels: Record<string, string> = {
                 </button>
                 <button
                   @click="confirmModalAction"
-                  :disabled="busy"
-                  class="px-4 py-2 rounded-md text-sm font-medium text-white transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+                  :disabled="busy || (modal.type === 'delete' && !canDeleteUser)"
+                  class="px-4 py-2 rounded-md text-sm font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
                   :class="modal.type === 'delete'
                     ? 'bg-error hover:bg-error-hover'
                     : 'bg-accent hover:bg-accent-hover'"
