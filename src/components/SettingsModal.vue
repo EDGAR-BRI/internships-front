@@ -30,16 +30,17 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    v-if="isOpen"
-    class="fixed inset-0 z-[60] overflow-y-auto bg-black/60 backdrop-blur-sm"
-    @click="close"
-  >
-    <div class="min-h-full flex items-center justify-center p-4 sm:p-6">
-      <div
-        class="bg-canvas border border-border rounded-lg w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden my-auto modal-open"
-        @click.stop
-      >
+  <Teleport to="body">
+    <div
+      v-if="isOpen"
+      class="fixed inset-0 z-[95] overflow-y-auto bg-black/60 backdrop-blur-sm"
+      @click="close"
+    >
+      <div class="min-h-full flex items-center justify-center p-4 sm:p-6">
+        <div
+          class="bg-canvas border border-border rounded-lg w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden my-auto modal-open"
+          @click.stop
+        >
         <div class="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
           <h2 class="text-lg font-semibold text-text">Ajustes</h2>
           <button
@@ -91,6 +92,7 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <style scoped>

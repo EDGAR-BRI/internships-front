@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import { api } from '../lib/api'
 import SettingsModal from './SettingsModal.vue'
 import NoteModal from './NoteModal.vue'
 
-const { user, isAuthenticated, logout, restoreSession } = useAuth()
+const { user, token, isAuthenticated, logout, restoreSession, updateUser } = useAuth()
 
 const noteModalOpen = ref(false)
+const togglingPublic = ref(false)
 
 const initials = computed(() => {
   const name = user.value?.fullName || user.value?.email || ''
@@ -33,6 +35,26 @@ async function handleLogout() {
 
 function openSettings() {
   window.dispatchEvent(new CustomEvent('open-settings-modal'))
+}
+
+async function togglePublicProfile() {
+  if (togglingPublic.value) return
+  togglingPublic.value = true
+  try {
+    const next = !user.value?.profilePublic
+    const res = await api.put<{ user: any }>(
+      '/account/profile',
+      { profilePublic: next },
+      token.value || undefined
+    )
+    if (res.user) {
+      updateUser(res.user)
+    }
+  } catch (e) {
+    console.error('Error al cambiar perfil público', e)
+  } finally {
+    togglingPublic.value = false
+  }
 }
 
 function isActive(path: string): boolean {
@@ -82,6 +104,31 @@ function isActive(path: string): boolean {
             >
               Comunidad
             </a>
+            <button
+              @click="togglePublicProfile"
+              :disabled="togglingPublic"
+              class="text-sm transition-colors inline-flex items-center gap-1.5"
+              :class="user?.profilePublic ? 'text-accent font-medium' : 'text-text-muted hover:text-text'"
+              :title="user?.profilePublic ? 'Perfil público activo. Clic para ocultar.' : 'Activar perfil público para aparecer en la comunidad'"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  v-if="user?.profilePublic"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"
+                />
+                <path
+                  v-else
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+              <span class="hidden lg:inline">{{ user?.profilePublic ? 'Público' : 'Privado' }}</span>
+            </button>
             <a
               v-if="user?.role === 'admin'"
               href="/admin"
@@ -139,6 +186,31 @@ function isActive(path: string): boolean {
           Internship<span class="text-accent">Tracker</span>
         </a>
         <div class="flex items-center gap-3">
+          <button
+            @click="togglePublicProfile"
+            :disabled="togglingPublic"
+            class="transition-colors p-1.5"
+            :class="user?.profilePublic ? 'text-accent' : 'text-text-muted'"
+            :title="user?.profilePublic ? 'Perfil público activo. Clic para ocultar.' : 'Activar perfil público'"
+            aria-label="Perfil público"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                v-if="user?.profilePublic"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"
+              />
+              <path
+                v-else
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+          </button>
           <button
             @click="openSettings"
             class="text-text-muted transition-colors p-1.5"
@@ -228,7 +300,7 @@ function isActive(path: string): boolean {
 
         <a
           href="/comunidad"
-          class="flex flex-col items-center justify-center gap-0.5 flex-1 mr-7 transition-colors"
+          class="flex flex-col items-center justify-center gap-0.5 flex-1 transition-colors"
           :class="isActive('/comunidad') ? 'text-accent' : 'text-text-muted'"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
