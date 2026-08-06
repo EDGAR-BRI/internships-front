@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import GoogleLoginButton from '../components/GoogleLoginButton.vue'
 ---
 
 <BaseLayout title="Internship Tracker">
@@ -32,6 +33,10 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         >
           Crear cuenta
         </a>
+      </div>
+
+      <div class="flex items-center justify-center">
+        <GoogleLoginButton client:load />
       </div>
 
       <div class="pt-8 border-t border-border">
