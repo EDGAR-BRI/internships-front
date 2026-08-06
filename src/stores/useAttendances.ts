@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { api } from '../lib/api'
+import { api, OfflineQueuedError } from '../lib/api'
 import { useAuthStore } from './useAuth'
 import { registerReset, canPersist, persistStorage } from './registry'
 import { isFresh } from './ttl'
@@ -97,6 +97,32 @@ export const useAttendancesStore = defineStore(
       }
     }
 
+    function localAttendance(partial: Partial<Attendance>): Attendance {
+      const now = new Date().toISOString()
+      return {
+        id: -Date.now(),
+        userId: 0,
+        date: todayInMexicoCity(),
+        checkIn: null,
+        checkOut: null,
+        isFullDay: null,
+        hours: 0,
+        mode: null,
+        createdAt: now,
+        updatedAt: now,
+        ...partial,
+      }
+    }
+
+    function upsertLocal(att: Attendance) {
+      const index = attendances.value.findIndex((a) => a.id === att.id)
+      if (index !== -1) {
+        attendances.value[index] = att
+      } else {
+        attendances.value.unshift(att)
+      }
+    }
+
     async function checkIn(date?: string, isFullDay?: boolean, mode?: Attendance['mode']) {
       const auth = useAuthStore()
       error.value = ''
@@ -106,11 +132,18 @@ export const useAttendancesStore = defineStore(
           { date: date || todayInMexicoCity(), isFullDay, mode },
           auth.token || undefined
         )
-        attendances.value.unshift(data)
+        upsertLocal(data)
         touch()
         invalidateSummary()
         return data
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          const local = localAttendance({ date: date || todayInMexicoCity(), isFullDay, mode })
+          upsertLocal(local)
+          touch()
+          invalidateSummary()
+          throw e
+        }
         error.value = e.message || 'Error al registrar entrada'
         throw e
       }
@@ -125,16 +158,24 @@ export const useAttendancesStore = defineStore(
           { date: date || todayInMexicoCity() },
           auth.token || undefined
         )
-        const index = attendances.value.findIndex((a) => a.id === data.id)
-        if (index !== -1) {
-          attendances.value[index] = data
-        } else {
-          attendances.value.unshift(data)
-        }
+        upsertLocal(data)
         touch()
         invalidateSummary()
         return data
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          const now = new Date().toISOString()
+          const target = attendanceForDate(date || todayInMexicoCity())
+          if (target) {
+            target.checkOut = now
+            upsertLocal({ ...target })
+          } else {
+            upsertLocal(localAttendance({ date: date || todayInMexicoCity(), checkIn: now, checkOut: now }))
+          }
+          touch()
+          invalidateSummary()
+          throw e
+        }
         error.value = e.message || 'Error al registrar salida'
         throw e
       }
@@ -149,40 +190,48 @@ export const useAttendancesStore = defineStore(
           { date: date || todayInMexicoCity(), mode },
           auth.token || undefined
         )
-        const index = attendances.value.findIndex((a) => a.id === data.id)
-        if (index !== -1) {
-          attendances.value[index] = data
-        } else {
-          attendances.value.unshift(data)
-        }
+        upsertLocal(data)
         touch()
         invalidateSummary()
         return data
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          upsertLocal(localAttendance({ date: date || todayInMexicoCity(), isFullDay: true, mode }))
+          touch()
+          invalidateSummary()
+          throw e
+        }
         error.value = e.message || 'Error al registrar día completo'
         throw e
       }
     }
 
-    async function registerPartial(date: string, hours: number, mode?: Attendance['mode']) {
+    async function registerPartial(
+      date: string,
+      hours: number,
+      mode?: Attendance['mode'],
+      checkIn?: string,
+      checkOut?: string
+    ) {
       const auth = useAuthStore()
       error.value = ''
       try {
         const data = await api.post<Attendance>(
           '/attendances/partial',
-          { date, hours, mode },
+          { date, hours, mode, checkIn, checkOut },
           auth.token || undefined
         )
-        const index = attendances.value.findIndex((a) => a.id === data.id)
-        if (index !== -1) {
-          attendances.value[index] = data
-        } else {
-          attendances.value.unshift(data)
-        }
+        upsertLocal(data)
         touch()
         invalidateSummary()
         return data
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          upsertLocal(localAttendance({ date, hours, mode, checkIn, checkOut }))
+          touch()
+          invalidateSummary()
+          throw e
+        }
         error.value = e.message || 'Error al registrar horas parciales'
         throw e
       }
@@ -190,7 +239,14 @@ export const useAttendancesStore = defineStore(
 
     async function updateAttendance(
       id: number,
-      payload: { date?: string; isFullDay?: boolean; hours?: number; mode?: Attendance['mode'] }
+      payload: {
+        date?: string
+        isFullDay?: boolean
+        hours?: number
+        mode?: Attendance['mode']
+        checkIn?: string
+        checkOut?: string
+      }
     ) {
       const auth = useAuthStore()
       error.value = ''
@@ -200,14 +256,20 @@ export const useAttendancesStore = defineStore(
           payload,
           auth.token || undefined
         )
-        const index = attendances.value.findIndex((a) => a.id === data.id)
-        if (index !== -1) {
-          attendances.value[index] = data
-        }
+        upsertLocal(data)
         touch()
         invalidateSummary()
         return data
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          const index = attendances.value.findIndex((a) => a.id === id)
+          if (index !== -1) {
+            attendances.value[index] = { ...attendances.value[index], ...payload }
+          }
+          touch()
+          invalidateSummary()
+          throw e
+        }
         error.value = e.message || 'Error al actualizar asistencia'
         throw e
       }
@@ -222,6 +284,12 @@ export const useAttendancesStore = defineStore(
         touch()
         invalidateSummary()
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          attendances.value = attendances.value.filter((a) => a.id !== id)
+          touch()
+          invalidateSummary()
+          throw e
+        }
         error.value = e.message || 'Error al eliminar asistencia'
         throw e
       }
@@ -238,6 +306,15 @@ export const useAttendancesStore = defineStore(
       error.value = ''
       lastFetched.value = 0
       summaryFetched.value = 0
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('sync-flushed', () => {
+        lastFetched.value = 0
+        summaryFetched.value = 0
+        fetchAttendances()
+        fetchSummary()
+      })
     }
 
     registerReset(reset)

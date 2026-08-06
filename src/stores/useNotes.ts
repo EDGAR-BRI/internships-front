@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { api } from '../lib/api'
+import { api, OfflineQueuedError } from '../lib/api'
 import { useAuthStore } from './useAuth'
 import { registerReset, canPersist, persistStorage } from './registry'
 import { isFresh } from './ttl'
@@ -56,6 +56,21 @@ export const useNotesStore = defineStore(
       }
     }
 
+    function localNote(formData: NoteFormData): Note {
+      const now = new Date().toISOString()
+      return {
+        id: -Date.now(),
+        userId: 0,
+        logEntryId: formData.logEntryId ?? null,
+        title: formData.title ?? null,
+        content: formData.content,
+        tag: formData.tag,
+        date: formData.date ?? null,
+        createdAt: now,
+        updatedAt: now,
+      }
+    }
+
     async function createNote(formData: NoteFormData) {
       const auth = useAuthStore()
       error.value = ''
@@ -75,6 +90,11 @@ export const useNotesStore = defineStore(
         touch()
         return data.note
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          notes.value.unshift(localNote(formData))
+          touch()
+          throw e
+        }
         error.value = e.message || 'Error al crear nota'
         throw e
       }
@@ -101,6 +121,14 @@ export const useNotesStore = defineStore(
         touch()
         return res.note
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          const index = notes.value.findIndex((n) => n.id === id)
+          if (index !== -1) {
+            notes.value[index] = { ...notes.value[index], ...data }
+          }
+          touch()
+          throw e
+        }
         error.value = e.message || 'Error al actualizar nota'
         throw e
       }
@@ -114,6 +142,11 @@ export const useNotesStore = defineStore(
         notes.value = notes.value.filter((n) => n.id !== id)
         touch()
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          notes.value = notes.value.filter((n) => n.id !== id)
+          touch()
+          throw e
+        }
         error.value = e.message || 'Error al eliminar nota'
         throw e
       }
@@ -124,6 +157,13 @@ export const useNotesStore = defineStore(
       loading.value = false
       error.value = ''
       lastFetched.value = 0
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('sync-flushed', () => {
+        lastFetched.value = 0
+        fetchNotes()
+      })
     }
 
     registerReset(reset)

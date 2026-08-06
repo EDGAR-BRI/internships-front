@@ -1,4 +1,5 @@
 import { PUBLIC_API_URL } from 'astro:env/client'
+import { enqueueOp } from './syncQueue'
 
 const API_BASE = PUBLIC_API_URL
 
@@ -7,6 +8,7 @@ interface ApiOptions {
   body?: any
   token?: string
   timeout?: number
+  offline?: boolean
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -15,6 +17,29 @@ const ERROR_MESSAGES: Record<string, string> = {
   'NetworkError': 'No se pudo conectar al servidor. Verifica tu conexión a internet.',
   'TimeoutError': 'La solicitud tardó demasiado. Intenta de nuevo.',
   'AbortError': 'La solicitud fue cancelada.',
+}
+
+export class OfflineQueuedError extends Error {
+  queuedId: string
+  constructor(message: string, queuedId: string) {
+    super(message)
+    this.name = 'OfflineQueuedError'
+    this.queuedId = queuedId
+  }
+}
+
+function isNetworkFailure(error: unknown): boolean {
+  if (error instanceof TypeError) return true
+  if (error instanceof Error && error.name === 'AbortError') return true
+  return false
+}
+
+const WRITE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
+
+function shouldQueue(path: string): boolean {
+  if (path.includes('/auth/')) return false
+  if (path === '/account/logout') return false
+  return true
 }
 
 export class ApiError extends Error {
@@ -58,7 +83,7 @@ function unwrapData(data: any): any {
 }
 
 export async function apiFetch<T = any>(path: string, options: ApiOptions = {}): Promise<T> {
-  const { method = 'GET', body, token, timeout = 10000 } = options
+  const { method = 'GET', body, token, timeout = 10000, offline = false } = options
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -108,6 +133,18 @@ export async function apiFetch<T = any>(path: string, options: ApiOptions = {}):
     return unwrapData(data) as T
   } catch (error) {
     clearTimeout(timeoutId)
+    if (
+      offline &&
+      WRITE_METHODS.includes(method) &&
+      isNetworkFailure(error) &&
+      shouldQueue(path)
+    ) {
+      const op = enqueueOp(method as any, path, body)
+      throw new OfflineQueuedError(
+        'Sin conexión: se guardó localmente y se sincronizará automáticamente',
+        op.id
+      )
+    }
     throw new Error(getFriendlyError(error))
   }
 }
@@ -117,14 +154,14 @@ export const api = {
     apiFetch<T>(path, { token }),
 
   post: <T = any>(path: string, body: any, token?: string) =>
-    apiFetch<T>(path, { method: 'POST', body, token }),
+    apiFetch<T>(path, { method: 'POST', body, token, offline: true }),
 
   put: <T = any>(path: string, body: any, token?: string) =>
-    apiFetch<T>(path, { method: 'PUT', body, token }),
+    apiFetch<T>(path, { method: 'PUT', body, token, offline: true }),
 
   patch: <T = any>(path: string, body: any, token?: string) =>
-    apiFetch<T>(path, { method: 'PATCH', body, token }),
+    apiFetch<T>(path, { method: 'PATCH', body, token, offline: true }),
 
   delete: <T = any>(path: string, token?: string) =>
-    apiFetch<T>(path, { method: 'DELETE', token }),
+    apiFetch<T>(path, { method: 'DELETE', token, offline: true }),
 }

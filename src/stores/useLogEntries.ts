@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { api } from '../lib/api'
+import { api, OfflineQueuedError } from '../lib/api'
 import { useAuthStore } from './useAuth'
 import { registerReset, canPersist, persistStorage } from './registry'
 import { isFresh } from './ttl'
@@ -77,6 +77,25 @@ export const useLogEntriesStore = defineStore(
       }
     }
 
+    function localLogEntry(formData: LogEntryFormData): LogEntry {
+      const now = new Date().toISOString()
+      return {
+        id: -Date.now(),
+        userId: 0,
+        name: formData.name,
+        status: formData.status,
+        week: formData.week,
+        area: formData.area,
+        theory: formData.theory,
+        impact: formData.impact,
+        resources: formData.resources,
+        datStart: normalizeDate(formData.datStart) ?? formData.datStart,
+        datEnd: normalizeDate(formData.datEnd) ?? formData.datEnd,
+        createdAt: now,
+        updatedAt: now,
+      }
+    }
+
     async function createLogEntry(formData: LogEntryFormData) {
       const auth = useAuthStore()
       error.value = ''
@@ -95,6 +114,11 @@ export const useLogEntriesStore = defineStore(
         touch()
         return data.logEntry
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          logEntries.value.unshift(localLogEntry(formData))
+          touch()
+          throw e
+        }
         error.value = e.message || 'Error al crear actividad'
         throw e
       }
@@ -121,6 +145,14 @@ export const useLogEntriesStore = defineStore(
         touch()
         return data.logEntry
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          const index = logEntries.value.findIndex((t) => t.id === id)
+          if (index !== -1) {
+            logEntries.value[index] = { ...logEntries.value[index], ...formData }
+          }
+          touch()
+          throw e
+        }
         error.value = e.message || 'Error al actualizar actividad'
         throw e
       }
@@ -134,6 +166,11 @@ export const useLogEntriesStore = defineStore(
         logEntries.value = logEntries.value.filter((t) => t.id !== id)
         touch()
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          logEntries.value = logEntries.value.filter((t) => t.id !== id)
+          touch()
+          throw e
+        }
         error.value = e.message || 'Error al eliminar actividad'
         throw e
       }
@@ -144,6 +181,13 @@ export const useLogEntriesStore = defineStore(
       loading.value = false
       error.value = ''
       lastFetched.value = 0
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('sync-flushed', () => {
+        lastFetched.value = 0
+        fetchLogEntries()
+      })
     }
 
     registerReset(reset)

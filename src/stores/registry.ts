@@ -25,6 +25,9 @@ export function clearPersistedData() {
   for (const key of DATA_STORE_PERSIST_KEYS) {
     sessionStorage.removeItem(key)
   }
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('sync_queue')
+  }
 }
 
 export function resetAllStores() {

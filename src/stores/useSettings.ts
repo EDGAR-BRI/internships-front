@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { api } from '../lib/api'
+import { api, OfflineQueuedError } from '../lib/api'
 import { useAuthStore } from './useAuth'
 import { registerReset, canPersist, persistStorage } from './registry'
 import { isFresh } from './ttl'
@@ -14,6 +14,8 @@ export interface UserSettings {
   workType: 'full' | 'partial' | null
   workHoursPerDay: number | null
   daysPerWeek: number | null
+  workStartTime: string | null
+  workEndTime: string | null
 }
 
 export const useSettingsStore = defineStore(
@@ -50,6 +52,8 @@ export const useSettingsStore = defineStore(
       startDate: string
       endDate: string
       skippedWeeks?: number[]
+      workStartTime?: string | null
+      workEndTime?: string | null
     }) {
       const auth = useAuthStore()
       error.value = ''
@@ -63,6 +67,13 @@ export const useSettingsStore = defineStore(
         lastFetched.value = Date.now()
         return res.settings
       } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          if (settings.value) {
+            settings.value = { ...settings.value, ...data }
+          }
+          lastFetched.value = Date.now()
+          throw e
+        }
         error.value = e.message || 'Error al guardar configuración'
         throw e
       }
@@ -73,6 +84,13 @@ export const useSettingsStore = defineStore(
       loading.value = false
       error.value = ''
       lastFetched.value = 0
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('sync-flushed', () => {
+        lastFetched.value = 0
+        fetchSettings()
+      })
     }
 
     registerReset(reset)
