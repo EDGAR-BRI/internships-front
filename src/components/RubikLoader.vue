@@ -30,7 +30,7 @@ const FACES = [
   {
     key: 'top',
     transform: `rotateX(90deg) translateZ(${S / 2}px)`,
-    color: (_x: number, y: number) => (y === 0 ? '#e3e3e3' : DARK),
+    color: (_x: number, y: number) => (y === 0 ? '#ffffff' : DARK),
   },
   {
     key: 'bottom',
