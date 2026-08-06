@@ -404,9 +404,13 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Fechas fin -->
-      <div class="bg-surface border border-border rounded-lg p-4 space-y-1 sm:col-span-2">
+    <!-- Gráficas: heatmap + fechas de fin -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <AttendanceCharts />
+      <div v-if="summary.targetEndDate || summary.estimatedEndDate || summary.pace.daysPerWeek > 0" class="bg-surface border border-border rounded-lg p-4 space-y-1">
+        <h3 class="text-sm font-semibold text-text mb-2">Fechas de fin</h3>
         <div class="flex flex-wrap gap-4">
           <div v-if="summary.targetEndDate" class="space-y-0.5">
             <p class="text-xs text-text-muted">Fin estimado al inicio</p>
@@ -425,9 +429,6 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
-
-    <!-- Gráficas -->
-    <AttendanceCharts />
 
     <!-- Registro -->
     <div class="bg-surface border border-border rounded-lg p-4 space-y-4">      <div class="flex items-center justify-between">
