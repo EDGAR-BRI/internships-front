@@ -87,8 +87,8 @@ function handleBackdropClick(e: MouseEvent) {
               <div class="flex items-center gap-2 mb-2 pr-10">
                 <button
                   @click="handleStatusToggle"
-                  class="status-toggle-btn inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium border transition-all hover:scale-105 active:scale-95 hover:ring-2 hover:ring-accent/40"
-                  :class="statusPillClasses[entry.status]"
+                  class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium border transition-all hover:scale-105 active:scale-95 hover:ring-2 hover:ring-accent/40"
+                  :class="[entry.status !== 'done' ? 'status-toggle-btn' : '', statusPillClasses[entry.status]]"
                   :title="`Cambiar estado: ${statusLabels[entry.status]}`"
                 >
                   <svg

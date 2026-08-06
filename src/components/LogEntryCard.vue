@@ -128,12 +128,15 @@ const isGrid = computed(() => props.viewMode === 'grid')
       <div class="flex items-start gap-3 mb-3">
         <button
           @click.stop="handleStatusToggle"
-          class="status-toggle-btn flex-shrink-0 w-6 h-6 rounded-md border transition-all flex items-center justify-center mt-0.5 hover:scale-110 active:scale-95 hover:ring-2 hover:ring-accent/40"
-          :class="entry.status === 'done'
-            ? 'bg-accent border-accent'
-            : entry.status === 'in_progress'
-              ? 'bg-warning/10 border-warning/60 hover:border-warning'
-              : 'bg-neutral-500/10 border-neutral-500/60 hover:border-neutral-400'"
+          class="flex-shrink-0 w-6 h-6 rounded-md border transition-all flex items-center justify-center mt-0.5 hover:scale-110 active:scale-95 hover:ring-2 hover:ring-accent/40"
+          :class="[
+            entry.status !== 'done' ? 'status-toggle-btn' : '',
+            entry.status === 'done'
+              ? 'bg-accent border-accent'
+              : entry.status === 'in_progress'
+                ? 'bg-warning/10 border-warning/60 hover:border-warning'
+                : 'bg-neutral-500/10 border-neutral-500/60 hover:border-neutral-400',
+          ]"
           :title="`Cambiar estado: ${statusLabels[entry.status]}`"
         >
           <svg
@@ -222,12 +225,15 @@ const isGrid = computed(() => props.viewMode === 'grid')
       <div class="flex items-center gap-3">
         <button
           @click.stop="handleStatusToggle"
-          class="status-toggle-btn flex-shrink-0 w-5 h-5 rounded border transition-all flex items-center justify-center hover:scale-110 active:scale-95 hover:ring-2 hover:ring-accent/40"
-          :class="entry.status === 'done'
-            ? 'bg-accent border-accent'
-            : entry.status === 'in_progress'
-              ? 'bg-warning/10 border-warning/60 hover:border-warning'
-              : 'bg-neutral-500/10 border-neutral-500/60 hover:border-neutral-400'"
+          class="flex-shrink-0 w-5 h-5 rounded border transition-all flex items-center justify-center hover:scale-110 active:scale-95 hover:ring-2 hover:ring-accent/40"
+          :class="[
+            entry.status !== 'done' ? 'status-toggle-btn' : '',
+            entry.status === 'done'
+              ? 'bg-accent border-accent'
+              : entry.status === 'in_progress'
+                ? 'bg-warning/10 border-warning/60 hover:border-warning'
+                : 'bg-neutral-500/10 border-neutral-500/60 hover:border-neutral-400',
+          ]"
           :title="`Cambiar estado: ${statusLabels[entry.status]}`"
         >
           <svg
