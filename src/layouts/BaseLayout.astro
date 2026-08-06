@@ -2,6 +2,7 @@
 import '@fontsource-variable/inter'
 import interFont from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2'
 import '../styles/global.css'
+import InstallBanner from '../components/InstallBanner.vue'
 
 interface Props {
   title: string
@@ -36,6 +37,7 @@ const { title, description = 'Internship Tracker - Track your internship progres
     <title>{title}</title>
   </head>
   <body class="bg-canvas text-text min-h-screen">
+    <InstallBanner client:load />
     <slot />
   </body>
 </html>
