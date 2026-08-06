@@ -222,6 +222,7 @@ const HEAT_COLORS = [
         :attendances="attendances"
         :settings="settings"
         :summary="summary"
+        :compact="compact"
       />
     </div>
 
