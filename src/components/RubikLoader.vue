@@ -134,48 +134,39 @@ function faceColor(x: number, y: number, z: number, faceIndex: number): string {
 }
 
 .row-1 {
-  animation: layer-spin-y 7s ease-in-out 0s infinite;
+  animation: layer-y 3.5s linear infinite;
 }
 .row-2 {
-  animation: layer-spin-x 7s ease-in-out 2.33s infinite;
+  animation: layer-x 3.5s linear infinite -1.1667s;
 }
 .row-3 {
-  animation: layer-spin-z 7s ease-in-out 4.66s infinite;
+  animation: layer-y-rev 3.5s linear infinite -2.3334s;
 }
 
-@keyframes layer-spin-y {
+@keyframes layer-y {
   0% {
     transform: rotateY(0deg);
   }
-  33% {
-    transform: rotateY(360deg);
-  }
   100% {
     transform: rotateY(360deg);
   }
 }
 
-@keyframes layer-spin-x {
+@keyframes layer-y-rev {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(-360deg);
+  }
+}
+
+@keyframes layer-x {
   0% {
     transform: rotateX(0deg);
   }
-  33% {
-    transform: rotateX(360deg);
-  }
   100% {
     transform: rotateX(360deg);
-  }
-}
-
-@keyframes layer-spin-z {
-  0% {
-    transform: rotateZ(0deg);
-  }
-  33% {
-    transform: rotateZ(360deg);
-  }
-  100% {
-    transform: rotateZ(360deg);
   }
 }
 
