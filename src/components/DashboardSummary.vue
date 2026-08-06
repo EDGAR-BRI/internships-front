@@ -1,12 +1,47 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useLogEntries } from '../composables/useLogEntries'
 import { useNotes } from '../composables/useNotes'
+import { useAttendances } from '../composables/useAttendances'
 import LogEntryList from './LogEntryList.vue'
 import NotesList from './NotesList.vue'
+import AttendanceCharts from './AttendanceCharts.vue'
 
 const { logEntries } = useLogEntries()
 const { notes } = useNotes()
+const { summary, fetchSummary } = useAttendances()
+
+onMounted(() => {
+  fetchSummary()
+  window.addEventListener('settings-saved', fetchSummary)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('settings-saved', fetchSummary)
+})
+
+const daysProgress = computed(() => {
+  if (!summary.value?.totalDays) return 0
+  return Math.min((summary.value.completedDays / summary.value.totalDays) * 100, 100)
+})
+
+const hoursProgress = computed(() => {
+  if (!summary.value?.totalHours) return 0
+  return Math.min((summary.value.completedHours / summary.value.totalHours) * 100, 100)
+})
+
+const weeksProgress = computed(() => {
+  if (!summary.value?.totalWeeks) return 0
+  return Math.min((summary.value.completedWeeks / summary.value.totalWeeks) * 100, 100)
+})
+
+function formatDate(iso: string | null): string {
+  if (!iso) return '—'
+  const parts = iso.slice(0, 10).split('-').map(Number)
+  if (parts.length !== 3 || parts.some((n) => isNaN(n))) return iso
+  const [y, m, d] = parts
+  return new Date(y, m - 1, d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+}
 
 const stats = computed(() => {
   const entries = logEntries.value
@@ -48,6 +83,77 @@ const statCards = computed(() => [
       </a>
     </div>
 
+    <!-- Progreso de pasantía -->
+    <div class="bg-surface border border-border rounded-xl p-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-text">Progreso de tu pasantía</h2>
+        <a href="/asistencia" class="text-xs text-accent hover:text-accent-hover hover:underline transition-colors">
+          Ir a asistencia →
+        </a>
+      </div>
+
+      <div v-if="!summary" class="text-sm text-text-muted">Cargando progreso...</div>
+
+      <div v-else-if="!summary.targetEndDate" class="text-sm text-text-muted">
+        Aún no tienes configurado el período de tu pasantía.
+        <a href="/asistencia" class="text-accent underline font-medium">Configúralo aquí</a>
+        para ver cuánto llevas y cuánto te falta.
+      </div>
+
+      <template v-else>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-text-secondary">Días</span>
+            <span class="text-sm font-semibold text-text">
+              Llevas {{ summary.completedDays }} de {{ summary.totalDays }}
+              <span class="text-text-muted font-normal">· te faltan {{ summary.remainingDays }}</span>
+            </span>
+          </div>
+          <div class="h-2 bg-overlay rounded-full overflow-hidden">
+            <div class="h-full bg-accent rounded-full transition-all" :style="{ width: daysProgress + '%' }"></div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-text-secondary">Horas</span>
+            <span class="text-sm font-semibold text-text">
+              Llevas {{ summary.completedHours }}h de {{ summary.totalHours }}h
+              <span class="text-text-muted font-normal">· te faltan {{ summary.remainingHours }}h</span>
+            </span>
+          </div>
+          <div class="h-2 bg-overlay rounded-full overflow-hidden">
+            <div class="h-full bg-accent rounded-full transition-all" :style="{ width: hoursProgress + '%' }"></div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-text-secondary">Semanas</span>
+            <span class="text-sm font-semibold text-text">
+              Llevas {{ summary.completedWeeks }} de {{ summary.totalWeeks }}
+              <span class="text-text-muted font-normal">· te faltan {{ summary.remainingWeeks }}</span>
+            </span>
+          </div>
+          <div class="h-2 bg-overlay rounded-full overflow-hidden">
+            <div class="h-full bg-accent rounded-full transition-all" :style="{ width: weeksProgress + '%' }"></div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-x-4 gap-y-1 pt-3 border-t border-border text-xs text-text-muted">
+          <span v-if="summary.targetEndDate">
+            Fin estimado: <span class="text-text font-medium">{{ formatDate(summary.targetEndDate) }}</span>
+          </span>
+          <span v-if="summary.estimatedEndDate">
+            Al ritmo actual: <span class="text-text font-medium">{{ formatDate(summary.estimatedEndDate) }}</span>
+          </span>
+          <span v-if="summary.pace.daysPerWeek > 0">
+            Ritmo: ~{{ summary.pace.daysPerWeek }} días/semana
+          </span>
+        </div>
+      </template>
+    </div>
+
     <!-- Stats -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       <div
@@ -59,6 +165,9 @@ const statCards = computed(() => [
         <span class="text-2xl font-bold mt-1" :class="card.color">{{ card.value }}</span>
       </div>
     </div>
+
+    <!-- Horas por semana -->
+    <AttendanceCharts compact />
 
     <!-- Recent Activities -->
     <div>

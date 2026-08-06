@@ -5,6 +5,7 @@ import { useSettings } from '../composables/useSettings'
 import { computeWeek } from '../utils/week'
 import AttendanceCalendar from './AttendanceCalendar.vue'
 import AttendanceEditModal from './AttendanceEditModal.vue'
+import AttendanceCharts from './AttendanceCharts.vue'
 
 const {
   attendances,
@@ -388,9 +389,11 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Gráficas -->
+    <AttendanceCharts />
+
     <!-- Registro -->
-    <div class="bg-surface border border-border rounded-lg p-4 space-y-4">
-      <div class="flex items-center justify-between">
+    <div class="bg-surface border border-border rounded-lg p-4 space-y-4">      <div class="flex items-center justify-between">
         <h2 class="text-sm font-semibold text-text">Registrar asistencia</h2>
       </div>
 
