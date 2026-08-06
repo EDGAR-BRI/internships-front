@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useAttendances } from '../composables/useAttendances'
 import { useSettings } from '../composables/useSettings'
 
@@ -8,10 +8,23 @@ const props = withDefaults(defineProps<{ compact?: boolean }>(), { compact: fals
 const { attendances, summary, fetchAttendances, fetchSummary } = useAttendances()
 const { settings, fetchSettings } = useSettings()
 
+const containerRef = ref<HTMLDivElement | null>(null)
+const containerW = ref(0)
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(() => {
   fetchAttendances()
   fetchSummary()
   fetchSettings()
+  resizeObserver = new ResizeObserver(() => {
+    if (containerRef.value) containerW.value = containerRef.value.clientWidth
+  })
+  if (containerRef.value) resizeObserver.observe(containerRef.value)
+})
+
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
 })
 
 function iso(d: Date): string {
@@ -63,6 +76,7 @@ const heatCells = computed(() => {
 const totalWeeks = computed(() => Math.max(1, ...heatCells.value.map((c) => c.week)))
 
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 const weekDates = computed(() => {
   if (!settings.value?.startDate) return []
@@ -77,10 +91,23 @@ const weekDates = computed(() => {
   return list
 })
 
+const monthLabels = computed(() => {
+  const list: { week: number; label: string }[] = []
+  let lastMonth = -1
+  for (const wd of weekDates.value) {
+    const month = Number(wd.date.slice(5, 7))
+    if (month !== lastMonth) {
+      list.push({ week: wd.week, label: MONTH_LABELS[month - 1] })
+      lastMonth = month
+    }
+  }
+  return list
+})
+
 const dateStep = computed(() => Math.max(1, Math.ceil(totalWeeks.value / 10)))
 
 function formatShortDate(isoDate: string): string {
-  const [y, m, d] = isoDate.split('-').map(Number)
+  const [, m, d] = isoDate.split('-').map(Number)
   return `${d}/${m}`
 }
 
@@ -93,12 +120,31 @@ function formatLongDate(isoDate: string): string {
   })
 }
 
-const CELL = 13
 const CELL_GAP = 3
-const LEFT_W = 14
-const BOTTOM_H = 16
-const heatH = computed(() => 7 * (CELL + CELL_GAP) + CELL_GAP)
-const heatW = computed(() => LEFT_W + totalWeeks.value * (CELL + CELL_GAP) + CELL_GAP)
+const LEFT_W = 20
+const TOP_H = 20
+const BOTTOM_H = 20
+
+const cellSize = computed(() => {
+  const width = containerW.value
+  if (!width || totalWeeks.value <= 0) return 12
+  const max = Math.floor((width - LEFT_W - CELL_GAP) / totalWeeks.value - CELL_GAP)
+  return Math.max(8, Math.min(30, max))
+})
+
+const fontM = computed(() => Math.max(10, Math.round(cellSize.value * 0.75)))
+const fontS = computed(() => Math.max(9, Math.round(cellSize.value * 0.6)))
+
+const heatH = computed(() => TOP_H + 7 * (cellSize.value + CELL_GAP) + CELL_GAP)
+const heatW = computed(() => LEFT_W + totalWeeks.value * (cellSize.value + CELL_GAP) + CELL_GAP)
+
+function cellX(week: number): number {
+  return LEFT_W + CELL_GAP + (week - 1) * (cellSize.value + CELL_GAP)
+}
+
+function cellY(day: number): number {
+  return TOP_H + CELL_GAP + day * (cellSize.value + CELL_GAP)
+}
 
 const HEAT_COLORS = [
   'transparent',
@@ -142,14 +188,14 @@ const modeSplit = computed(() => {
       <div v-if="heatCells.length === 0" class="text-sm text-text-muted">
         Configura el inicio de tu pasantía para ver el calendario de actividad.
       </div>
-      <div v-else class="overflow-x-auto pb-1">
-        <svg :width="heatW" :height="heatH + BOTTOM_H" class="block">
+      <div v-else ref="containerRef" class="w-full">
+        <svg :width="heatW" :height="heatH + BOTTOM_H" class="block" :viewBox="`0 0 ${heatW} ${heatH + BOTTOM_H}`">
           <g v-for="c in heatCells" :key="c.date">
             <rect
-              :x="LEFT_W + CELL_GAP + (c.week - 1) * (CELL + CELL_GAP)"
-              :y="CELL_GAP + c.day * (CELL + CELL_GAP)"
-              :width="CELL"
-              :height="CELL"
+              :x="cellX(c.week)"
+              :y="cellY(c.day)"
+              :width="cellSize"
+              :height="cellSize"
               rx="2"
               :style="{ fill: HEAT_COLORS[c.level], stroke: 'var(--color-border)' }"
               stroke-width="1"
@@ -160,22 +206,32 @@ const modeSplit = computed(() => {
           <text
             v-for="(label, day) in DAY_LABELS"
             :key="day"
-            :x="LEFT_W - 3"
-            :y="CELL_GAP + day * (CELL + CELL_GAP) + CELL / 2 + 3.5"
+            :x="LEFT_W - 5"
+            :y="cellY(day) + cellSize / 2 + fontS / 2"
             text-anchor="end"
-            font-size="9"
+            :font-size="fontS"
             :style="{ fill: 'var(--color-text-muted)' }"
           >
             {{ label }}
           </text>
           <text
+            v-for="ml in monthLabels"
+            :key="ml.week"
+            :x="cellX(ml.week)"
+            :y="TOP_H - 6"
+            :font-size="fontS"
+            :style="{ fill: 'var(--color-text-muted)' }"
+          >
+            {{ ml.label }}
+          </text>
+          <text
             v-for="wd in weekDates"
             :key="wd.week"
             v-show="wd.week % dateStep === 0 || wd.week === totalWeeks"
-            :x="LEFT_W + CELL_GAP + (wd.week - 1) * (CELL + CELL_GAP) + CELL / 2"
-            :y="heatH + 12"
+            :x="cellX(wd.week) + cellSize / 2"
+            :y="heatH + BOTTOM_H - 6"
             text-anchor="middle"
-            font-size="9"
+            :font-size="fontS"
             :style="{ fill: 'var(--color-text-muted)' }"
           >
             {{ formatShortDate(wd.date) }}
