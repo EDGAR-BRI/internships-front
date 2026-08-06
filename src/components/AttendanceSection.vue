@@ -6,6 +6,7 @@ import { computeWeek } from '../utils/week'
 import AttendanceCalendar from './AttendanceCalendar.vue'
 import AttendanceEditModal from './AttendanceEditModal.vue'
 import AttendanceCharts from './AttendanceCharts.vue'
+import AttendanceModeBar from './AttendanceModeBar.vue'
 
 const {
   attendances,
@@ -385,13 +386,14 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Gráficas: heatmap + modalidad + fechas de fin -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+    <!-- Gráficas: heatmap + modalidad -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
       <AttendanceCharts />
-      <div class="space-y-4">
+      <div class="flex flex-col gap-4">
+        <AttendanceModeBar :summary="summary" />
         <!-- Presencial / Remoto -->
-        <div class="bg-surface border border-border rounded-lg p-4 space-y-2">
-          <span class="text-sm font-medium text-text-secondary">Modalidad</span>
+        <div class="flex-1 bg-surface border border-border rounded-lg p-4 space-y-2">
+          <span class="text-sm font-medium text-text-secondary">Modalidad en números</span>
           <div class="flex flex-wrap gap-3">
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-accent"></span>
@@ -406,26 +408,6 @@ onUnmounted(() => {
             <div class="flex items-center gap-2">
               <span class="text-xs text-text-muted">Total</span>
               <span class="text-sm font-semibold text-text">{{ summary.completedDays }} días</span>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="summary.targetEndDate || summary.estimatedEndDate || summary.pace.daysPerWeek > 0" class="bg-surface border border-border rounded-lg p-4 space-y-1">
-          <h3 class="text-sm font-semibold text-text mb-2">Fechas de fin</h3>
-          <div class="flex flex-wrap gap-4">
-            <div v-if="summary.targetEndDate" class="space-y-0.5">
-              <p class="text-xs text-text-muted">Fin estimado al inicio</p>
-              <p class="text-sm font-semibold text-text">{{ summary.targetEndDate }}</p>
-            </div>
-            <div v-if="summary.estimatedEndDate" class="space-y-0.5">
-              <p class="text-xs text-text-muted">Fin estimado al ritmo actual</p>
-              <p class="text-sm font-semibold text-text">{{ summary.estimatedEndDate }}</p>
-            </div>
-            <div v-if="summary.pace.daysPerWeek > 0" class="space-y-0.5">
-              <p class="text-xs text-text-muted">Ritmo actual</p>
-              <p class="text-sm font-semibold text-text">
-                ~{{ summary.pace.daysPerWeek }} días / ~{{ summary.pace.hoursPerWeek }}h por semana
-              </p>
             </div>
           </div>
         </div>

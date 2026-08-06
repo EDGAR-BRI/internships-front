@@ -136,11 +136,8 @@ function faceColor(x: number, y: number, z: number, faceIndex: number): string {
 .row-1 {
   animation: layer-y 3.5s linear infinite;
 }
-.row-2 {
-  animation: layer-x 3.5s linear infinite -1.1667s;
-}
 .row-3 {
-  animation: layer-y-rev 3.5s linear infinite -2.3334s;
+  animation: layer-y-rev 3.5s linear infinite -1.75s;
 }
 
 @keyframes layer-y {
@@ -158,15 +155,6 @@ function faceColor(x: number, y: number, z: number, faceIndex: number): string {
   }
   100% {
     transform: rotateY(-360deg);
-  }
-}
-
-@keyframes layer-x {
-  0% {
-    transform: rotateX(0deg);
-  }
-  100% {
-    transform: rotateX(360deg);
   }
 }
 

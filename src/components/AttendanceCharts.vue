@@ -196,19 +196,6 @@ const HEAT_COLORS = [
   'rgba(0, 112, 243, 0.7)',
   '#0070f3',
 ]
-
-const modeSplit = computed(() => {
-  if (!summary.value) return null
-  const total = summary.value.onSiteDays + summary.value.remoteDays
-  if (total <= 0) return null
-  return {
-    total,
-    onSite: summary.value.onSiteDays,
-    remote: summary.value.remoteDays,
-    onSitePct: Math.round((summary.value.onSiteDays / total) * 100),
-    remotePct: Math.round((summary.value.remoteDays / total) * 100),
-  }
-})
 </script>
 
 <template>
@@ -379,36 +366,6 @@ const modeSplit = computed(() => {
           <span class="inline-block w-3.5 h-2 rounded-[2px] border-2" style="border-color: var(--color-accent)"></span>
           Posible final al ritmo actual
         </span>
-      </div>
-    </div>
-
-    <!-- Modalidad -->
-    <div v-if="!compact" class="bg-surface border border-border rounded-lg p-4 space-y-3">
-      <h3 class="text-sm font-semibold text-text">Modalidad</h3>
-      <div v-if="!modeSplit" class="text-sm text-text-muted">Sin datos de modalidad todavía.</div>
-      <div v-else class="space-y-2">
-        <div class="flex h-3 rounded-full overflow-hidden border border-border">
-          <div
-            class="bg-accent h-full transition-all"
-            :style="{ width: modeSplit.onSitePct + '%' }"
-            :title="`Presencial: ${modeSplit.onSite} días`"
-          ></div>
-          <div
-            class="bg-warning h-full transition-all"
-            :style="{ width: modeSplit.remotePct + '%' }"
-            :title="`Remoto: ${modeSplit.remote} días`"
-          ></div>
-        </div>
-        <div class="flex flex-wrap gap-4 text-xs">
-          <span class="inline-flex items-center gap-1.5 text-text-muted">
-            <span class="w-2.5 h-2.5 rounded-full bg-accent inline-block"></span>
-            Presencial: <span class="text-text font-medium">{{ modeSplit.onSite }} días ({{ modeSplit.onSitePct }}%)</span>
-          </span>
-          <span class="inline-flex items-center gap-1.5 text-text-muted">
-            <span class="w-2.5 h-2.5 rounded-full bg-warning inline-block"></span>
-            Remoto: <span class="text-text font-medium">{{ modeSplit.remote }} días ({{ modeSplit.remotePct }}%)</span>
-          </span>
-        </div>
       </div>
     </div>
   </div>

@@ -6,6 +6,7 @@ import { useAttendances } from '../composables/useAttendances'
 import LogEntryList from './LogEntryList.vue'
 import NotesList from './NotesList.vue'
 import AttendanceCharts from './AttendanceCharts.vue'
+import AttendanceModeBar from './AttendanceModeBar.vue'
 
 const { logEntries } = useLogEntries()
 const { notes } = useNotes()
@@ -154,25 +155,28 @@ const statCards = computed(() => [
       </div>
     </div>
 
-    <!-- Días activos + fechas de fin -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+    <!-- Días activos + modalidad -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
       <AttendanceCharts compact />
-      <div v-if="summary?.targetEndDate || summary?.estimatedEndDate || (summary?.pace?.daysPerWeek ?? 0) > 0" class="bg-surface border border-border rounded-xl p-4 space-y-1">
-        <h2 class="text-sm font-semibold text-text mb-2">Fechas de fin</h2>
-        <div class="flex flex-wrap gap-4">
-          <div v-if="summary.targetEndDate" class="space-y-0.5">
-            <p class="text-xs text-text-muted">Fin estimado al inicio</p>
-            <p class="text-sm font-semibold text-text">{{ formatDate(summary.targetEndDate) }}</p>
-          </div>
-          <div v-if="summary.estimatedEndDate" class="space-y-0.5">
-            <p class="text-xs text-text-muted">Fin estimado al ritmo actual</p>
-            <p class="text-sm font-semibold text-text">{{ formatDate(summary.estimatedEndDate) }}</p>
-          </div>
-          <div v-if="summary.pace.daysPerWeek > 0" class="space-y-0.5">
-            <p class="text-xs text-text-muted">Ritmo actual</p>
-            <p class="text-sm font-semibold text-text">
-              ~{{ summary.pace.daysPerWeek }} días / ~{{ summary.pace.hoursPerWeek }}h por semana
-            </p>
+      <div class="flex flex-col gap-4">
+        <AttendanceModeBar :summary="summary" />
+        <div v-if="summary?.targetEndDate || summary?.estimatedEndDate || (summary?.pace?.daysPerWeek ?? 0) > 0" class="flex-1 bg-surface border border-border rounded-xl p-4 space-y-1">
+          <h2 class="text-sm font-semibold text-text mb-2">Fechas de fin</h2>
+          <div class="flex flex-wrap gap-4">
+            <div v-if="summary.targetEndDate" class="space-y-0.5">
+              <p class="text-xs text-text-muted">Fin estimado al inicio</p>
+              <p class="text-sm font-semibold text-text">{{ formatDate(summary.targetEndDate) }}</p>
+            </div>
+            <div v-if="summary.estimatedEndDate" class="space-y-0.5">
+              <p class="text-xs text-text-muted">Fin estimado al ritmo actual</p>
+              <p class="text-sm font-semibold text-text">{{ formatDate(summary.estimatedEndDate) }}</p>
+            </div>
+            <div v-if="summary.pace.daysPerWeek > 0" class="space-y-0.5">
+              <p class="text-xs text-text-muted">Ritmo actual</p>
+              <p class="text-sm font-semibold text-text">
+                ~{{ summary.pace.daysPerWeek }} días / ~{{ summary.pace.hoursPerWeek }}h por semana
+              </p>
+            </div>
           </div>
         </div>
       </div>
