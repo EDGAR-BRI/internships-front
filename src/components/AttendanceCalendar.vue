@@ -102,10 +102,7 @@ function dayNumber(date: string): number {
 </script>
 
 <template>
-  <div
-    class="bg-surface border border-border rounded-lg p-4 space-y-3"
-    :class="compact ? 'max-w-sm' : ''"
-  >
+  <div class="bg-surface border border-border rounded-lg p-4 space-y-3">
     <div class="flex items-center justify-between">
       <h2 class="text-sm font-semibold text-text capitalize">{{ monthLabel }}</h2>
       <div class="flex items-center gap-1">

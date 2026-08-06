@@ -593,6 +593,7 @@ onUnmounted(() => {
         :attendances="attendances"
         :settings="settings"
         :summary="summary"
+        compact
       />
 
       <template v-if="historyView === 'list'">
