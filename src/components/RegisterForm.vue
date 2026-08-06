@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { api } from '../lib/api'
 import { useAuth } from '../composables/useAuth'
 import GoogleLoginButton from './GoogleLoginButton.vue'
+import RubikLoader from './RubikLoader.vue'
 
 const { setAuth } = useAuth()
 
@@ -51,7 +52,13 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="relative space-y-4">
+    <div
+      v-if="loading"
+      class="absolute inset-0 z-10 bg-canvas/80 backdrop-blur-sm rounded-lg flex items-center justify-center"
+    >
+      <RubikLoader label="Creando cuenta..." />
+    </div>
     <GoogleLoginButton />
 
     <div class="relative">

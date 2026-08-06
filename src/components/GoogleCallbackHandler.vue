@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import RubikLoader from './RubikLoader.vue'
 
 const { setAuth } = useAuth()
 const visibleError = ref<string | null>(null)
@@ -52,6 +53,6 @@ onMounted(() => {
       <p class="font-semibold text-error mb-2">Error en el callback de Google:</p>
       <pre class="whitespace-pre-wrap break-all text-text">{{ visibleError }}</pre>
     </div>
-    <p v-else class="text-text-secondary text-sm">Iniciando sesión...</p>
+    <RubikLoader v-else label="Iniciando sesión..." />
   </div>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import RubikLoader from './RubikLoader.vue'
 
 const { restoreSession, loadFromStorage, isAuthenticated } = useAuth()
 const ready = ref(false)
@@ -25,6 +26,6 @@ onMounted(() => {
 <template>
   <slot v-if="ready" />
   <div v-else class="min-h-screen flex items-center justify-center">
-    <p class="text-text-secondary text-sm">Verificando sesión...</p>
+    <RubikLoader label="Verificando sesión..." />
   </div>
 </template>
