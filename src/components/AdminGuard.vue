@@ -6,13 +6,25 @@ import RubikLoader from './RubikLoader.vue'
 const { user, restoreSession, loadFromStorage } = useAuth()
 const ready = ref(false)
 
+const MIN_LOADER_MS = 500
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 const isAdmin = computed(() => user.value?.role === 'admin')
 
-onMounted(() => {
+onMounted(async () => {
+  const started = Date.now()
   const hasSession = restoreSession()
   if (!hasSession) {
+    await delay(Math.max(0, MIN_LOADER_MS - (Date.now() - started)))
     window.location.replace('/login')
     return
+  }
+  const elapsed = Date.now() - started
+  if (elapsed < MIN_LOADER_MS) {
+    await delay(MIN_LOADER_MS - elapsed)
   }
   ready.value = true
   loadFromStorage().then(() => {

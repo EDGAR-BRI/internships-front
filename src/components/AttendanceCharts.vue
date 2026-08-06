@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { useAttendances } from '../composables/useAttendances'
 import { useSettings } from '../composables/useSettings'
-import AttendanceCalendar from './AttendanceCalendar.vue'
 
 const props = withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
 
@@ -11,18 +10,30 @@ const { settings, fetchSettings } = useSettings()
 
 const viewMode = ref<'heatmap' | 'calendar'>('heatmap')
 
-const containerRef = ref<HTMLDivElement | null>(null)
+const heatmapRef = ref<HTMLDivElement | null>(null)
 const containerW = ref(0)
 let resizeObserver: ResizeObserver | null = null
+
+function measure() {
+  if (heatmapRef.value) containerW.value = heatmapRef.value.clientWidth
+}
+
+watch(
+  () => viewMode.value,
+  async () => {
+    if (viewMode.value === 'heatmap') {
+      await nextTick()
+      measure()
+    }
+  }
+)
 
 onMounted(() => {
   fetchAttendances()
   fetchSummary()
   fetchSettings()
-  resizeObserver = new ResizeObserver(() => {
-    if (containerRef.value) containerW.value = containerRef.value.clientWidth
-  })
-  if (containerRef.value) resizeObserver.observe(containerRef.value)
+  resizeObserver = new ResizeObserver(measure)
+  if (heatmapRef.value) resizeObserver.observe(heatmapRef.value)
 })
 
 onUnmounted(() => {
@@ -123,6 +134,19 @@ function formatLongDate(isoDate: string): string {
   })
 }
 
+function formatTime(iso: string | null): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleTimeString('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'America/Mexico_City',
+  })
+}
+
+const sortedAttendances = computed(() =>
+  [...attendances.value].sort((a, b) => b.date.localeCompare(a.date))
+)
+
 const CELL_GAP = 3
 const LEFT_W = 20
 const TOP_H = 20
@@ -178,7 +202,7 @@ const modeSplit = computed(() => {
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold text-text">Días activos</h3>
         <div class="flex items-center gap-3">
-          <div class="flex items-center gap-1 bg-overlay border border-border rounded-md p-0.5">
+          <div v-if="compact" class="flex items-center gap-1 bg-overlay border border-border rounded-md p-0.5">
             <button
               @click="viewMode = 'heatmap'"
               class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
@@ -191,7 +215,7 @@ const modeSplit = computed(() => {
               class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
               :class="viewMode === 'calendar' ? 'bg-accent text-white' : 'text-text-muted hover:text-text'"
             >
-              Calendario
+              Lista
             </button>
           </div>
           <div v-if="viewMode === 'heatmap'" class="hidden sm:flex items-center gap-1 text-[10px] text-text-muted">
@@ -207,19 +231,61 @@ const modeSplit = computed(() => {
         </div>
       </div>
 
-      <AttendanceCalendar
-        v-if="viewMode === 'calendar'"
-        :attendances="attendances"
-        :settings="settings"
-        :summary="summary"
-      />
+      <div v-if="viewMode === 'calendar'" class="space-y-2">
+        <div v-if="attendances.length === 0" class="text-sm text-text-muted">
+          No hay asistencias registradas.
+        </div>
+        <div
+          v-for="a in sortedAttendances.slice(0, 30)"
+          :key="a.id"
+          class="flex items-center justify-between gap-3 bg-overlay border border-border rounded-md px-3 py-2"
+        >
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-xs text-text-muted w-10 shrink-0">{{ formatShortDate(a.date) }}</span>
+            <span
+              v-if="a.isFullDay"
+              class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent/10 text-accent"
+            >
+              Completo
+            </span>
+            <span
+              v-else
+              class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-overlay text-text-secondary"
+            >
+              Parcial
+            </span>
+            <span
+              v-if="a.mode === 'on_site'"
+              class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent/10 text-accent"
+            >
+              Presencial
+            </span>
+            <span
+              v-else-if="a.mode === 'remote'"
+              class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/10 text-warning"
+            >
+              Remoto
+            </span>
+            <span v-if="a.checkIn && a.checkOut" class="text-xs text-text-muted truncate">
+              {{ formatTime(a.checkIn) }} – {{ formatTime(a.checkOut) }}
+            </span>
+          </div>
+          <span class="text-sm font-semibold text-text shrink-0">{{ a.hours }}h</span>
+        </div>
+      </div>
 
       <template v-else>
+      <div ref="heatmapRef" class="w-full">
       <div v-if="heatCells.length === 0" class="text-sm text-text-muted">
         Configura el inicio de tu pasantía para ver el calendario de actividad.
       </div>
-      <div v-else ref="containerRef" class="w-full">
-        <svg :width="heatW" :height="heatH + BOTTOM_H" class="block" :viewBox="`0 0 ${heatW} ${heatH + BOTTOM_H}`">
+        <svg
+          v-else
+          class="block w-full"
+          :height="heatH + BOTTOM_H"
+          :viewBox="`0 0 ${heatW} ${heatH + BOTTOM_H}`"
+          preserveAspectRatio="none"
+        >
           <g v-for="c in heatCells" :key="c.date">
             <rect
               :x="cellX(c.week)"
