@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { useAttendances } from '../composables/useAttendances'
 import { useSettings } from '../composables/useSettings'
+import AttendanceCalendar from './AttendanceCalendar.vue'
 
 const props = withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
 
@@ -89,6 +90,23 @@ const heatCells = computed(() => {
 
 const totalWeeks = computed(() => Math.max(1, ...heatCells.value.map((c) => c.week)))
 
+const displayWeeks = computed(() => {
+  const width = containerW.value
+  if (!width) return totalWeeks.value
+  const fits = Math.floor((width - LEFT_W - CELL_GAP) / (CELL + CELL_GAP))
+  return Math.max(totalWeeks.value, fits)
+})
+
+const placeholderCells = computed(() => {
+  const cells: { week: number; day: number }[] = []
+  for (let w = totalWeeks.value + 1; w <= displayWeeks.value; w++) {
+    for (let day = 0; day < 7; day++) {
+      cells.push({ week: w, day })
+    }
+  }
+  return cells
+})
+
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
@@ -97,7 +115,7 @@ const weekDates = computed(() => {
   const start = settings.value.startDate.slice(0, 10)
   const startDate = new Date(start + 'T00:00:00')
   const list: { week: number; date: string }[] = []
-  for (let w = 1; w <= totalWeeks.value; w++) {
+  for (let w = 1; w <= displayWeeks.value; w++) {
     const d = new Date(startDate)
     d.setDate(d.getDate() + (w - 1) * 7)
     list.push({ week: w, date: iso(d) })
@@ -118,7 +136,17 @@ const monthLabels = computed(() => {
   return list
 })
 
-const dateStep = computed(() => Math.max(1, Math.ceil(totalWeeks.value / 10)))
+const dateStep = computed(() => Math.max(1, Math.ceil(displayWeeks.value / 10)))
+
+const targetEndWeek = computed(() => {
+  if (!settings.value?.startDate || !summary.value?.targetEndDate) return null
+  return computeWeekIndex(settings.value.startDate.slice(0, 10), summary.value.targetEndDate)
+})
+
+const estimatedEndWeek = computed(() => {
+  if (!settings.value?.startDate || !summary.value?.estimatedEndDate) return null
+  return computeWeekIndex(settings.value.startDate.slice(0, 10), summary.value.estimatedEndDate)
+})
 
 function formatShortDate(isoDate: string): string {
   const [, m, d] = isoDate.split('-').map(Number)
@@ -143,38 +171,26 @@ function formatTime(iso: string | null): string {
   })
 }
 
-const sortedAttendances = computed(() =>
-  [...attendances.value].sort((a, b) => b.date.localeCompare(a.date))
-)
-
+const CELL = 11
 const CELL_GAP = 3
 const LEFT_W = 20
 const TOP_H = 20
 const BOTTOM_H = 20
+const fontS = 9
 
-const cellSize = computed(() => {
-  const width = containerW.value
-  if (!width || totalWeeks.value <= 0) return 12
-  const max = Math.floor((width - LEFT_W - CELL_GAP) / totalWeeks.value - CELL_GAP)
-  return Math.max(8, max)
-})
-
-const fontM = computed(() => Math.max(10, Math.round(cellSize.value * 0.75)))
-const fontS = computed(() => Math.max(9, Math.round(cellSize.value * 0.6)))
-
-const heatH = computed(() => TOP_H + 7 * (cellSize.value + CELL_GAP) + CELL_GAP)
-const heatW = computed(() => LEFT_W + totalWeeks.value * (cellSize.value + CELL_GAP) + CELL_GAP)
+const heatH = computed(() => TOP_H + 7 * (CELL + CELL_GAP) + CELL_GAP)
+const heatW = computed(() => LEFT_W + displayWeeks.value * (CELL + CELL_GAP) + CELL_GAP)
 
 function cellX(week: number): number {
-  return LEFT_W + CELL_GAP + (week - 1) * (cellSize.value + CELL_GAP)
+  return LEFT_W + CELL_GAP + (week - 1) * (CELL + CELL_GAP)
 }
 
 function cellY(day: number): number {
-  return TOP_H + CELL_GAP + day * (cellSize.value + CELL_GAP)
+  return TOP_H + CELL_GAP + day * (CELL + CELL_GAP)
 }
 
 const HEAT_COLORS = [
-  'transparent',
+  'var(--color-overlay)',
   'rgba(0, 112, 243, 0.22)',
   'rgba(0, 112, 243, 0.45)',
   'rgba(0, 112, 243, 0.7)',
@@ -215,7 +231,7 @@ const modeSplit = computed(() => {
               class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
               :class="viewMode === 'calendar' ? 'bg-accent text-white' : 'text-text-muted hover:text-text'"
             >
-              Lista
+              Calendario
             </button>
           </div>
           <div v-if="viewMode === 'heatmap'" class="hidden sm:flex items-center gap-1 text-[10px] text-text-muted">
@@ -231,48 +247,12 @@ const modeSplit = computed(() => {
         </div>
       </div>
 
-      <div v-if="viewMode === 'calendar'" class="space-y-2">
-        <div v-if="attendances.length === 0" class="text-sm text-text-muted">
-          No hay asistencias registradas.
-        </div>
-        <div
-          v-for="a in sortedAttendances.slice(0, 30)"
-          :key="a.id"
-          class="flex items-center justify-between gap-3 bg-overlay border border-border rounded-md px-3 py-2"
-        >
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="text-xs text-text-muted w-10 shrink-0">{{ formatShortDate(a.date) }}</span>
-            <span
-              v-if="a.isFullDay"
-              class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent/10 text-accent"
-            >
-              Completo
-            </span>
-            <span
-              v-else
-              class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-overlay text-text-secondary"
-            >
-              Parcial
-            </span>
-            <span
-              v-if="a.mode === 'on_site'"
-              class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent/10 text-accent"
-            >
-              Presencial
-            </span>
-            <span
-              v-else-if="a.mode === 'remote'"
-              class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/10 text-warning"
-            >
-              Remoto
-            </span>
-            <span v-if="a.checkIn && a.checkOut" class="text-xs text-text-muted truncate">
-              {{ formatTime(a.checkIn) }} – {{ formatTime(a.checkOut) }}
-            </span>
-          </div>
-          <span class="text-sm font-semibold text-text shrink-0">{{ a.hours }}h</span>
-        </div>
-      </div>
+      <AttendanceCalendar
+        v-if="viewMode === 'calendar'"
+        :attendances="attendances"
+        :settings="settings"
+        :summary="summary"
+      />
 
       <template v-else>
       <div ref="heatmapRef" class="w-full">
@@ -290,8 +270,8 @@ const modeSplit = computed(() => {
             <rect
               :x="cellX(c.week)"
               :y="cellY(c.day)"
-              :width="cellSize"
-              :height="cellSize"
+              :width="CELL"
+              :height="CELL"
               rx="2"
               :style="{ fill: HEAT_COLORS[c.level], stroke: 'var(--color-border)' }"
               stroke-width="1"
@@ -299,11 +279,51 @@ const modeSplit = computed(() => {
               <title>{{ formatLongDate(c.date) }}: {{ c.hours }}h</title>
             </rect>
           </g>
+          <g v-for="p in placeholderCells" :key="`${p.week}-${p.day}`">
+            <rect
+              :x="cellX(p.week)"
+              :y="cellY(p.day)"
+              :width="CELL"
+              :height="CELL"
+              rx="2"
+              :style="{ fill: 'var(--color-overlay)', stroke: 'var(--color-border)' }"
+              stroke-width="1"
+            ></rect>
+          </g>
+          <g v-if="targetEndWeek">
+            <rect
+              :x="cellX(targetEndWeek) - 1"
+              :y="TOP_H - 4"
+              :width="CELL + 2"
+              :height="7 * (CELL + CELL_GAP) + 8"
+              rx="2"
+              fill="none"
+              :stroke="'var(--color-warning)'"
+              stroke-width="2"
+              stroke-dasharray="4 3"
+            >
+              <title>Fin estimado de la pasantía</title>
+            </rect>
+          </g>
+          <g v-if="estimatedEndWeek">
+            <rect
+              :x="cellX(estimatedEndWeek) - 1"
+              :y="TOP_H - 4"
+              :width="CELL + 2"
+              :height="7 * (CELL + CELL_GAP) + 8"
+              rx="2"
+              fill="none"
+              :stroke="'var(--color-accent)'"
+              stroke-width="2"
+            >
+              <title>Posible final al ritmo actual</title>
+            </rect>
+          </g>
           <text
             v-for="(label, day) in DAY_LABELS"
             :key="day"
             :x="LEFT_W - 5"
-            :y="cellY(day) + cellSize / 2 + fontS / 2"
+            :y="cellY(day) + CELL / 2 + fontS / 2"
             text-anchor="end"
             :font-size="fontS"
             :style="{ fill: 'var(--color-text-muted)' }"
@@ -323,8 +343,8 @@ const modeSplit = computed(() => {
           <text
             v-for="wd in weekDates"
             :key="wd.week"
-            v-show="wd.week % dateStep === 0 || wd.week === totalWeeks"
-            :x="cellX(wd.week) + cellSize / 2"
+            v-show="wd.week % dateStep === 0 || wd.week === displayWeeks"
+            :x="cellX(wd.week) + CELL / 2"
             :y="heatH + BOTTOM_H - 6"
             text-anchor="middle"
             :font-size="fontS"
@@ -333,6 +353,16 @@ const modeSplit = computed(() => {
             {{ formatShortDate(wd.date) }}
           </text>
         </svg>
+      </div>
+      <div v-if="targetEndWeek || estimatedEndWeek" class="flex flex-wrap gap-4 text-[11px] text-text-muted pt-1">
+        <span v-if="targetEndWeek" class="inline-flex items-center gap-1.5">
+          <span class="inline-block w-3.5 h-2 rounded-[2px] border-2 border-dashed" style="border-color: var(--color-warning)"></span>
+          Fin estimado de la pasantía
+        </span>
+        <span v-if="estimatedEndWeek" class="inline-flex items-center gap-1.5">
+          <span class="inline-block w-3.5 h-2 rounded-[2px] border-2" style="border-color: var(--color-accent)"></span>
+          Posible final al ritmo actual
+        </span>
       </div>
       </template>
     </div>
