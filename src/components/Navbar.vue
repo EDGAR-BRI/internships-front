@@ -31,6 +31,10 @@ async function handleLogout() {
   window.location.href = '/login'
 }
 
+function openSettings() {
+  window.dispatchEvent(new CustomEvent('open-settings-modal'))
+}
+
 function isActive(path: string): boolean {
   if (typeof window === 'undefined') return false
   return window.location.pathname === path || window.location.pathname.startsWith(path + '/')
@@ -98,6 +102,17 @@ function isActive(path: string): boolean {
                 </span>
               </div>
               <button
+                @click="openSettings"
+                class="text-text-muted hover:text-text transition-colors p-2 rounded-md hover:bg-hover"
+                title="Ajustes"
+                aria-label="Ajustes"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+              <button
                 @click="handleLogout"
                 class="bg-overlay hover:bg-hover text-text-muted hover:text-error text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
               >
@@ -117,6 +132,17 @@ function isActive(path: string): boolean {
           Internship<span class="text-accent">Tracker</span>
         </a>
         <div class="flex items-center gap-3">
+          <button
+            @click="openSettings"
+            class="text-text-muted transition-colors p-1.5"
+            title="Ajustes"
+            aria-label="Ajustes"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
           <a
             v-if="user?.role === 'admin'"
             href="/admin"
