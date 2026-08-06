@@ -20,24 +20,6 @@ function iso(d: Date): string {
   ).padStart(2, '0')}`
 }
 
-const weeklyHours = computed(() => {
-  if (!settings.value?.startDate) return []
-  const start = settings.value.startDate.slice(0, 10)
-  const map = new Map<string, number>()
-  for (const a of attendances.value) {
-    map.set(a.date.slice(0, 10), (map.get(a.date.slice(0, 10)) || 0) + a.hours)
-  }
-  const weeks = new Map<number, number>()
-  for (const [date, hours] of map.entries()) {
-    const week = computeWeekIndex(start, date)
-    if (week === null) continue
-    weeks.set(week, (weeks.get(week) || 0) + hours)
-  }
-  return Array.from(weeks.entries())
-    .sort(([a], [b]) => a - b)
-    .map(([week, hours]) => ({ week, hours: Math.round(hours * 10) / 10 }))
-})
-
 function computeWeekIndex(start: string, date: string): number | null {
   const s = new Date(start + 'T00:00:00')
   const d = new Date(date + 'T00:00:00')
@@ -45,15 +27,6 @@ function computeWeekIndex(start: string, date: string): number | null {
   const diffDays = Math.floor((d.getTime() - s.getTime()) / 86400000)
   return Math.floor(diffDays / 7) + 1
 }
-
-const maxWeekly = computed(() => Math.max(1, ...weeklyHours.value.map((p) => p.hours)))
-
-const BAR_W = 26
-const BAR_GAP = 10
-const CHART_H = 140
-const LABEL_H = 18
-const svgW = computed(() => weeklyHours.value.length * (BAR_W + BAR_GAP) + BAR_GAP)
-const labelStep = computed(() => Math.max(1, Math.ceil(weeklyHours.value.length / 10)))
 
 const heatCells = computed(() => {
   if (!settings.value?.startDate) return []
@@ -79,7 +52,7 @@ const heatCells = computed(() => {
     const week = computeWeekIndex(start, date)
     if (week !== null) {
       const day = (cur.getDay() + 6) % 7
-      const level = hours <= 0 ? 0 : hours <= 2 ? 1 : hours <= 4 ? 2 : hours <= 6 ? 3 : 4
+      const level = hours <= 0 ? 0 : hours <= 2 ? 1 : hours <= 4 ? 2 : hours <= 7 ? 3 : 4
       cells.push({ week, day, date, hours, level })
     }
     cur.setDate(cur.getDate() + 1)
@@ -89,10 +62,43 @@ const heatCells = computed(() => {
 
 const totalWeeks = computed(() => Math.max(1, ...heatCells.value.map((c) => c.week)))
 
+const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+
+const weekDates = computed(() => {
+  if (!settings.value?.startDate) return []
+  const start = settings.value.startDate.slice(0, 10)
+  const startDate = new Date(start + 'T00:00:00')
+  const list: { week: number; date: string }[] = []
+  for (let w = 1; w <= totalWeeks.value; w++) {
+    const d = new Date(startDate)
+    d.setDate(d.getDate() + (w - 1) * 7)
+    list.push({ week: w, date: iso(d) })
+  }
+  return list
+})
+
+const dateStep = computed(() => Math.max(1, Math.ceil(totalWeeks.value / 10)))
+
+function formatShortDate(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number)
+  return `${d}/${m}`
+}
+
+function formatLongDate(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('es-MX', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+}
+
 const CELL = 13
 const CELL_GAP = 3
+const LEFT_W = 14
+const BOTTOM_H = 16
 const heatH = computed(() => 7 * (CELL + CELL_GAP) + CELL_GAP)
-const heatW = computed(() => totalWeeks.value * (CELL + CELL_GAP) + CELL_GAP)
+const heatW = computed(() => LEFT_W + totalWeeks.value * (CELL + CELL_GAP) + CELL_GAP)
 
 const HEAT_COLORS = [
   'transparent',
@@ -118,45 +124,8 @@ const modeSplit = computed(() => {
 
 <template>
   <div class="grid grid-cols-1 gap-4">
-    <!-- Horas por semana -->
-    <div class="bg-surface border border-border rounded-lg p-4 space-y-3">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-text">Horas por semana</h3>
-        <span class="text-xs text-text-muted">{{ weeklyHours.length }} semanas con registro</span>
-      </div>
-      <div v-if="weeklyHours.length === 0" class="text-sm text-text-muted">
-        Aún no hay asistencias para graficar.
-      </div>
-      <div v-else class="overflow-x-auto pb-1">
-        <svg :width="svgW" :height="CHART_H + LABEL_H" class="block">
-          <g v-for="(p, i) in weeklyHours" :key="p.week">
-            <rect
-              :x="BAR_GAP + i * (BAR_W + BAR_GAP)"
-              :y="CHART_H - (p.hours / maxWeekly) * CHART_H"
-              :width="BAR_W"
-              :height="(p.hours / maxWeekly) * CHART_H"
-              rx="3"
-              :style="{ fill: 'var(--color-accent)' }"
-            >
-              <title>Semana {{ p.week }}: {{ p.hours }}h</title>
-            </rect>
-            <text
-              v-if="p.week % labelStep === 0 || i === weeklyHours.length - 1"
-              :x="BAR_GAP + i * (BAR_W + BAR_GAP) + BAR_W / 2"
-              :y="CHART_H + LABEL_H - 4"
-              text-anchor="middle"
-              class="fill-current"
-              font-size="10"
-            >
-              {{ p.week }}
-            </text>
-          </g>
-        </svg>
-      </div>
-    </div>
-
     <!-- Heatmap -->
-    <div v-if="!compact" class="bg-surface border border-border rounded-lg p-4 space-y-3">
+    <div class="bg-surface border border-border rounded-lg p-4 space-y-3">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold text-text">Días activos</h3>
         <div class="flex items-center gap-1 text-[10px] text-text-muted">
@@ -174,10 +143,10 @@ const modeSplit = computed(() => {
         Configura el inicio de tu pasantía para ver el calendario de actividad.
       </div>
       <div v-else class="overflow-x-auto pb-1">
-        <svg :width="heatW" :height="heatH" class="block">
+        <svg :width="heatW" :height="heatH + BOTTOM_H" class="block">
           <g v-for="c in heatCells" :key="c.date">
             <rect
-              :x="CELL_GAP + (c.week - 1) * (CELL + CELL_GAP)"
+              :x="LEFT_W + CELL_GAP + (c.week - 1) * (CELL + CELL_GAP)"
               :y="CELL_GAP + c.day * (CELL + CELL_GAP)"
               :width="CELL"
               :height="CELL"
@@ -185,9 +154,32 @@ const modeSplit = computed(() => {
               :style="{ fill: HEAT_COLORS[c.level], stroke: 'var(--color-border)' }"
               stroke-width="1"
             >
-              <title>{{ c.date }}: {{ c.hours }}h</title>
+              <title>{{ formatLongDate(c.date) }}: {{ c.hours }}h</title>
             </rect>
           </g>
+          <text
+            v-for="(label, day) in DAY_LABELS"
+            :key="day"
+            :x="LEFT_W - 3"
+            :y="CELL_GAP + day * (CELL + CELL_GAP) + CELL / 2 + 3.5"
+            text-anchor="end"
+            font-size="9"
+            :style="{ fill: 'var(--color-text-muted)' }"
+          >
+            {{ label }}
+          </text>
+          <text
+            v-for="wd in weekDates"
+            :key="wd.week"
+            v-show="wd.week % dateStep === 0 || wd.week === totalWeeks"
+            :x="LEFT_W + CELL_GAP + (wd.week - 1) * (CELL + CELL_GAP) + CELL / 2"
+            :y="heatH + 12"
+            text-anchor="middle"
+            font-size="9"
+            :style="{ fill: 'var(--color-text-muted)' }"
+          >
+            {{ formatShortDate(wd.date) }}
+          </text>
         </svg>
       </div>
     </div>
