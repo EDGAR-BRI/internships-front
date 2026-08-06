@@ -3,11 +3,15 @@ import { ref, computed } from 'vue'
 import type { Attendance, AttendanceSummary } from '../composables/useAttendances'
 import type { UserSettings } from '../composables/useSettings'
 
-const props = defineProps<{
-  attendances: Attendance[]
-  settings: UserSettings | null
-  summary: AttendanceSummary | null
-}>()
+const props = withDefaults(
+  defineProps<{
+    attendances: Attendance[]
+    settings: UserSettings | null
+    summary: AttendanceSummary | null
+    compact?: boolean
+  }>(),
+  { compact: false }
+)
 
 const WEEKDAYS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do']
 
@@ -98,7 +102,10 @@ function dayNumber(date: string): number {
 </script>
 
 <template>
-  <div class="bg-surface border border-border rounded-lg p-4 space-y-3">
+  <div
+    class="bg-surface border border-border rounded-lg p-4 space-y-3"
+    :class="compact ? 'max-w-sm' : ''"
+  >
     <div class="flex items-center justify-between">
       <h2 class="text-sm font-semibold text-text capitalize">{{ monthLabel }}</h2>
       <div class="flex items-center gap-1">
@@ -137,20 +144,24 @@ function dayNumber(date: string): number {
       <div
         v-for="(cell, i) in cells"
         :key="i"
-        class="aspect-square flex flex-col items-center justify-center rounded-md text-xs relative"
-        :class="cell.marker?.attendance ? 'bg-accent/15' : ''"
+        class="flex flex-col items-center justify-center rounded-md relative"
+        :class="[
+          compact ? 'h-8 text-xs' : 'aspect-square text-xs',
+          cell.marker?.attendance ? 'bg-accent/15' : '',
+        ]"
       >
         <template v-if="cell.date && cell.marker">
           <span
-            class="w-7 h-7 flex items-center justify-center rounded-md font-medium"
+            class="flex items-center justify-center rounded-md font-medium"
             :class="[
+              compact ? 'w-6 h-6 text-[11px]' : 'w-7 h-7',
               cell.marker.attendance ? 'bg-accent text-white' : 'text-text-secondary',
               cell.date === todayYmd ? 'ring-1 ring-accent' : '',
             ]"
           >
             {{ dayNumber(cell.date) }}
           </span>
-          <span class="flex gap-0.5 mt-0.5 h-1.5 items-center">
+          <span v-if="!compact" class="flex gap-0.5 mt-0.5 h-1.5 items-center">
             <span v-if="cell.marker.isStart" class="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Inicio"></span>
             <span v-if="cell.marker.isTarget" class="w-1.5 h-1.5 rounded-full bg-sky-400" title="Fin estimado"></span>
             <span v-if="cell.marker.isEstimated" class="w-1.5 h-1.5 rounded-full bg-warning" title="Fin al ritmo actual"></span>
