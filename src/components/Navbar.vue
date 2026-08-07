@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
-import { api } from '../lib/api'
 import SettingsModal from './SettingsModal.vue'
 import NoteModal from './NoteModal.vue'
 
-const { user, token, isAuthenticated, logout, restoreSession, updateUser } = useAuth()
+const { user, isAuthenticated, logout, restoreSession } = useAuth()
 
 const noteModalOpen = ref(false)
-const togglingPublic = ref(false)
+const menuOpen = ref(false)
 
 const initials = computed(() => {
   const name = user.value?.fullName || user.value?.email || ''
@@ -26,35 +25,27 @@ if (typeof window !== 'undefined') {
 
 onMounted(() => {
   restoreSession()
+  document.addEventListener('click', closeMenuOnOutside)
 })
 
+onUnmounted(() => {
+  document.removeEventListener('click', closeMenuOnOutside)
+})
+
+function closeMenuOnOutside(e: Event) {
+  const el = (e.target as HTMLElement).closest('.avatar-menu')
+  if (!el) menuOpen.value = false
+}
+
 async function handleLogout() {
+  menuOpen.value = false
   await logout()
   window.location.href = '/login'
 }
 
 function openSettings() {
+  menuOpen.value = false
   window.dispatchEvent(new CustomEvent('open-settings-modal'))
-}
-
-async function togglePublicProfile() {
-  if (togglingPublic.value) return
-  togglingPublic.value = true
-  try {
-    const next = !user.value?.profilePublic
-    const res = await api.put<{ user: any }>(
-      '/account/profile',
-      { profilePublic: next },
-      token.value || undefined
-    )
-    if (res.user) {
-      updateUser(res.user)
-    }
-  } catch (e) {
-    console.error('Error al cambiar perfil público', e)
-  } finally {
-    togglingPublic.value = false
-  }
 }
 
 function isActive(path: string): boolean {
@@ -75,7 +66,7 @@ function isActive(path: string): boolean {
             </a>
           </div>
 
-          <div v-if="isAuthenticated" class="flex items-center gap-4">
+          <div v-if="isAuthenticated" class="flex items-center gap-5">
             <a
               href="/dashboard"
               class="text-sm transition-colors"
@@ -104,31 +95,6 @@ function isActive(path: string): boolean {
             >
               Comunidad
             </a>
-            <button
-              @click="togglePublicProfile"
-              :disabled="togglingPublic"
-              class="text-sm transition-colors inline-flex items-center gap-1.5"
-              :class="user?.profilePublic ? 'text-accent font-medium' : 'text-text-muted hover:text-text'"
-              :title="user?.profilePublic ? 'Perfil público activo. Clic para ocultar.' : 'Activar perfil público para aparecer en la comunidad'"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  v-if="user?.profilePublic"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"
-                />
-                <path
-                  v-else
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-              <span class="hidden lg:inline">{{ user?.profilePublic ? 'Público' : 'Privado' }}</span>
-            </button>
             <a
               v-if="user?.role === 'admin'"
               href="/admin"
@@ -137,8 +103,14 @@ function isActive(path: string): boolean {
             >
               Admin
             </a>
-            <div class="flex items-center gap-3">
-              <div class="flex items-center gap-2.5">
+
+            <!-- Avatar menu -->
+            <div class="avatar-menu relative">
+              <button
+                @click.stop="menuOpen = !menuOpen"
+                class="flex items-center gap-2 focus:outline-none"
+                aria-label="Menú de usuario"
+              >
                 <div
                   v-if="user?.avatarUrl"
                   class="w-8 h-8 rounded-full overflow-hidden ring-2 ring-accent/30 shrink-0"
@@ -151,30 +123,48 @@ function isActive(path: string): boolean {
                 >
                   {{ initials }}
                 </div>
-                <span class="text-text-secondary text-sm">
-                  {{ user?.fullName || user?.email }}
-                </span>
-              </div>
-              <button
-                @click="openSettings"
-                class="text-text-muted hover:text-text transition-colors p-2 rounded-md hover:bg-hover"
-                title="Ajustes"
-                aria-label="Ajustes"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <svg
+                  class="w-3.5 h-3.5 text-text-muted transition-transform"
+                  :class="menuOpen ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              <button
-                @click="handleLogout"
-                class="bg-overlay hover:bg-hover text-text-muted hover:text-error text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
-              >
-                Salir
-              </button>
+
+              <Transition name="menu">
+                <div
+                  v-if="menuOpen"
+                  class="absolute right-0 top-full mt-2 w-56 bg-surface border border-border-strong rounded-lg shadow-2xl overflow-hidden"
+                >
+                  <div class="px-4 py-3 border-b border-border">
+                    <p class="text-sm font-semibold text-text truncate">{{ user?.fullName || 'Usuario' }}</p>
+                    <p class="text-xs text-text-muted truncate">{{ user?.email }}</p>
+                  </div>
+                  <button
+                    @click="openSettings"
+                    class="w-full text-left px-4 py-2.5 text-sm text-text-secondary hover:text-text hover:bg-hover transition-colors flex items-center gap-2.5"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    </svg>
+                    Ajustes
+                  </button>
+                  <button
+                    @click="handleLogout"
+                    class="w-full text-left px-4 py-2.5 text-sm text-error hover:bg-hover transition-colors flex items-center gap-2.5 border-t border-border"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Cerrar sesión
+                  </button>
+                </div>
+              </Transition>
             </div>
           </div>
-
         </div>
       </div>
     </nav>
@@ -185,43 +175,7 @@ function isActive(path: string): boolean {
         <a href="/" class="text-text font-semibold tracking-tight text-sm">
           Internship<span class="text-accent">Tracker</span>
         </a>
-        <div class="flex items-center gap-3">
-          <button
-            @click="togglePublicProfile"
-            :disabled="togglingPublic"
-            class="transition-colors p-1.5"
-            :class="user?.profilePublic ? 'text-accent' : 'text-text-muted'"
-            :title="user?.profilePublic ? 'Perfil público activo. Clic para ocultar.' : 'Activar perfil público'"
-            aria-label="Perfil público"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                v-if="user?.profilePublic"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"
-              />
-              <path
-                v-else
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
-          </button>
-          <button
-            @click="openSettings"
-            class="text-text-muted transition-colors p-1.5"
-            title="Ajustes"
-            aria-label="Ajustes"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
+        <div class="flex items-center gap-2">
           <a
             v-if="user?.role === 'admin'"
             href="/admin"
@@ -230,22 +184,57 @@ function isActive(path: string): boolean {
           >
             Admin
           </a>
-          <div class="flex items-center gap-2">
-            <div
-              v-if="user?.avatarUrl"
-              class="w-7 h-7 rounded-full overflow-hidden ring-2 ring-accent/30 shrink-0"
+
+          <!-- Avatar menu (solo foto) -->
+          <div class="avatar-menu relative">
+            <button
+              @click.stop="menuOpen = !menuOpen"
+              class="focus:outline-none"
+              aria-label="Menú de usuario"
             >
-              <img :src="user.avatarUrl" :alt="user?.fullName || 'Avatar'" class="w-full h-full object-cover" />
-            </div>
-            <div
-              v-else
-              class="w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center text-[10px] font-semibold ring-2 ring-accent/30 shrink-0"
-            >
-              {{ initials }}
-            </div>
-            <span class="text-text-muted text-xs truncate max-w-[40%] text-right">
-              {{ user?.fullName || user?.email }}
-            </span>
+              <div
+                v-if="user?.avatarUrl"
+                class="w-8 h-8 rounded-full overflow-hidden ring-2 ring-accent/30 shrink-0"
+              >
+                <img :src="user.avatarUrl" :alt="user?.fullName || 'Avatar'" class="w-full h-full object-cover" />
+              </div>
+              <div
+                v-else
+                class="w-8 h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center text-[11px] font-semibold ring-2 ring-accent/30 shrink-0"
+              >
+                {{ initials }}
+              </div>
+            </button>
+
+            <Transition name="menu">
+              <div
+                v-if="menuOpen"
+                class="absolute right-0 top-full mt-2 w-52 bg-surface border border-border-strong rounded-lg shadow-2xl overflow-hidden"
+              >
+                <div class="px-4 py-3 border-b border-border">
+                  <p class="text-sm font-semibold text-text truncate">{{ user?.fullName || 'Usuario' }}</p>
+                  <p class="text-xs text-text-muted truncate">{{ user?.email }}</p>
+                </div>
+                <button
+                  @click="openSettings"
+                  class="w-full text-left px-4 py-2.5 text-sm text-text-secondary hover:text-text hover:bg-hover transition-colors flex items-center gap-2.5"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  </svg>
+                  Ajustes
+                </button>
+                <button
+                  @click="handleLogout"
+                  class="w-full text-left px-4 py-2.5 text-sm text-error hover:bg-hover transition-colors flex items-center gap-2.5 border-t border-border"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Cerrar sesión
+                </button>
+              </div>
+            </Transition>
           </div>
         </div>
       </div>
@@ -329,3 +318,15 @@ function isActive(path: string): boolean {
     <NoteModal :is-open="noteModalOpen" @close="noteModalOpen = false" />
   </div>
 </template>
+
+<style scoped>
+.menu-enter-active,
+.menu-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.menu-enter-from,
+.menu-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+</style>

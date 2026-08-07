@@ -2,11 +2,12 @@
 import { ref, onMounted, computed } from 'vue'
 import { useCommunity } from '../composables/useCommunity'
 import { useAuth } from '../composables/useAuth'
+import { api } from '../lib/api'
 import { tagLabel } from '../utils/noteTags'
 
 const { ranking, notes, error, loading, notesLoading, fetchRanking, fetchNotes, addComment, deleteComment } =
   useCommunity()
-const { user: me, restoreSession } = useAuth()
+const { user: me, token, restoreSession, updateUser } = useAuth()
 
 const activeTab = ref<'ranking' | 'notes'>('ranking')
 
@@ -14,11 +15,40 @@ const newComment = ref<Record<number, string>>({})
 const sendingComment = ref<number | null>(null)
 const commentError = ref('')
 
+const visibilityModalOpen = ref(false)
+const activatingVisibility = ref(false)
+const visibilityError = ref('')
+
 onMounted(() => {
   restoreSession()
   fetchRanking()
   fetchNotes()
+  if (me.value && !me.value.profilePublic) {
+    visibilityModalOpen.value = true
+  }
 })
+
+async function activatePublicProfile() {
+  activatingVisibility.value = true
+  visibilityError.value = ''
+  try {
+    const res = await api.put<{ user: any }>(
+      '/account/profile',
+      { profilePublic: true },
+      token.value || undefined
+    )
+    if (res.user) {
+      updateUser(res.user)
+    }
+    visibilityModalOpen.value = false
+    fetchRanking()
+    fetchNotes()
+  } catch (e: any) {
+    visibilityError.value = e.message || 'Error al activar el perfil público'
+  } finally {
+    activatingVisibility.value = false
+  }
+}
 
 const sortedNotes = computed(() =>
   [...notes.value].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
@@ -262,5 +292,46 @@ async function handleDeleteComment(noteId: number, commentId: number) {
       </div>
       <p v-if="commentError" class="text-xs text-error">{{ commentError }}</p>
     </div>
+
+    <!-- Modal visibilidad del perfil -->
+    <Teleport to="body">
+      <div
+        v-if="visibilityModalOpen"
+        class="fixed inset-0 z-[95] overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+      >
+        <div class="bg-canvas border border-border rounded-lg w-full max-w-md shadow-2xl p-6 space-y-4">
+          <div class="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+            <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-text">Bienvenido a la comunidad</h2>
+            <p class="text-sm text-text-muted mt-1 leading-relaxed">
+              Para aparecer en el ranking y que otros estudiantes puedan ver y comentar tus notas,
+              activa tu perfil público. Solo se mostrará tu nombre, nunca tu correo.
+            </p>
+          </div>
+          <div v-if="visibilityError" class="bg-error/10 border border-error/20 text-error text-sm rounded-md p-3">
+            {{ visibilityError }}
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button
+              @click="visibilityModalOpen = false"
+              class="flex-1 bg-overlay hover:bg-hover text-text-secondary hover:text-text px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              Ahora no
+            </button>
+            <button
+              @click="activatePublicProfile"
+              :disabled="activatingVisibility"
+              class="flex-1 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              {{ activatingVisibility ? 'Activando...' : 'Activar perfil público' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
