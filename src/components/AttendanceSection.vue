@@ -628,10 +628,10 @@ onUnmounted(() => {
     <div data-tour="attendance-history" class="space-y-3">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <h2 class="text-sm font-semibold text-text">Historial</h2>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <select
             v-model="filterMonth"
-            class="bg-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text focus:outline-none focus:border-accent"
+            class="flex-1 min-w-[6.5rem] sm:flex-none sm:min-w-0 bg-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text focus:outline-none focus:border-accent"
           >
             <option value="all">Todos los meses</option>
             <option v-for="[value, label] in availableMonths" :key="value" :value="value">
@@ -640,7 +640,7 @@ onUnmounted(() => {
           </select>
           <select
             v-model="filterType"
-            class="bg-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text focus:outline-none focus:border-accent"
+            class="flex-1 min-w-[6.5rem] sm:flex-none sm:min-w-0 bg-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text focus:outline-none focus:border-accent"
           >
             <option value="all">Todos los tipos</option>
             <option value="full">Día completo</option>
@@ -648,7 +648,7 @@ onUnmounted(() => {
           </select>
           <select
             v-model="filterMode"
-            class="bg-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text focus:outline-none focus:border-accent"
+            class="flex-1 min-w-[6.5rem] sm:flex-none sm:min-w-0 bg-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text focus:outline-none focus:border-accent"
           >
             <option value="all">Toda modalidad</option>
             <option value="on_site">Presencial</option>
