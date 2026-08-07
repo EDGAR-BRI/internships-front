@@ -4,20 +4,66 @@ import { useCommunity } from '../composables/useCommunity'
 import { useAuth } from '../composables/useAuth'
 import { api } from '../lib/api'
 import { tagLabel } from '../utils/noteTags'
+import type { SearchResult, PublicProfile } from '../stores/useCommunity'
 
-const { ranking, notes, error, loading, notesLoading, fetchRanking, fetchNotes, addComment, deleteComment } =
+const { ranking, notes, error, loading, notesLoading, fetchRanking, fetchNotes, addComment, deleteComment, toggleReaction, searchUsers, fetchPublicProfile } =
   useCommunity()
 const { user: me, token, restoreSession, updateUser } = useAuth()
+
+const REACTION_EMOJIS = ['👍', '❤️', '🔥', '👏', '💡', '🎉']
 
 const activeTab = ref<'ranking' | 'notes'>('ranking')
 
 const newComment = ref<Record<number, string>>({})
 const sendingComment = ref<number | null>(null)
 const commentError = ref('')
+const openPicker = ref<number | null>(null)
+
+function toggleEmojiPicker(noteId: number) {
+  openPicker.value = openPicker.value === noteId ? null : noteId
+}
 
 const visibilityModalOpen = ref(false)
 const activatingVisibility = ref(false)
 const visibilityError = ref('')
+
+const searchQuery = ref('')
+const searchResults = ref<SearchResult[]>([])
+const searching = ref(false)
+const searchError = ref('')
+const profileModalOpen = ref(false)
+const selectedProfile = ref<PublicProfile | null>(null)
+const profileLoading = ref(false)
+
+async function handleSearch() {
+  const q = searchQuery.value.trim()
+  if (!q) {
+    searchResults.value = []
+    return
+  }
+  searching.value = true
+  searchError.value = ''
+  try {
+    searchResults.value = await searchUsers(q)
+  } catch (e: any) {
+    searchError.value = e.message || 'Error al buscar'
+  } finally {
+    searching.value = false
+  }
+}
+
+async function openProfile(userId: number) {
+  profileModalOpen.value = true
+  profileLoading.value = true
+  selectedProfile.value = null
+  try {
+    selectedProfile.value = await fetchPublicProfile(userId)
+  } catch (e: any) {
+    searchError.value = e.message || 'Error al cargar el perfil'
+  } finally {
+    profileLoading.value = false
+  }
+}
 
 onMounted(() => {
   restoreSession()
@@ -115,6 +161,14 @@ async function handleDeleteComment(noteId: number, commentId: number) {
     commentError.value = e.message || 'Error al eliminar comentario'
   }
 }
+
+async function handleToggleReaction(noteId: number, emoji: string) {
+  try {
+    await toggleReaction(noteId, emoji)
+  } catch (e: any) {
+    commentError.value = e.message || 'Error al reaccionar'
+  }
+}
 </script>
 
 <template>
@@ -128,6 +182,66 @@ async function handleDeleteComment(noteId: number, commentId: number) {
 
     <div v-if="error" class="bg-warning/10 border border-warning/20 text-warning text-sm rounded-md p-3">
       {{ error }}
+    </div>
+
+    <!-- Buscador -->
+    <div class="space-y-2">
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1 max-w-md">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Buscar estudiantes por nombre..."
+            class="w-full bg-surface border border-border rounded-md pl-9 pr-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            @input="handleSearch"
+          />
+        </div>
+        <span v-if="searching" class="text-xs text-text-muted">Buscando...</span>
+      </div>
+      <p v-if="searchError" class="text-xs text-error">{{ searchError }}</p>
+      <div v-if="searchResults.length > 0" class="bg-surface border border-border rounded-lg overflow-hidden divide-y divide-border">
+        <button
+          v-for="u in searchResults"
+          :key="u.id"
+          @click="openProfile(u.id)"
+          class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-hover transition-colors"
+        >
+          <div
+            v-if="u.avatarUrl"
+            class="w-9 h-9 rounded-full overflow-hidden ring-2 ring-accent/20 shrink-0"
+          >
+            <img :src="u.avatarUrl" :alt="u.fullName || ''" class="w-full h-full object-cover" />
+          </div>
+          <div
+            v-else
+            class="w-9 h-9 rounded-full bg-accent/15 text-accent flex items-center justify-center text-xs font-semibold ring-2 ring-accent/20 shrink-0"
+          >
+            {{ u.initials }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-text truncate">{{ u.fullName || 'Estudiante' }}</p>
+            <p class="text-[11px] text-text-muted">
+              <template v-if="u.isPrivate">
+                <span class="inline-flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Perfil privado
+                </span>
+              </template>
+              <template v-else>
+                {{ u.stats?.completedHours || 0 }}h · {{ u.stats?.completedDays || 0 }} días · {{ u.notesCount || 0 }} notas
+              </template>
+            </p>
+          </div>
+          <svg class="w-4 h-4 text-text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div class="flex items-center gap-2 border-b border-border pb-2">
@@ -247,6 +361,51 @@ async function handleDeleteComment(noteId: number, commentId: number) {
           <p v-if="note.date" class="text-[11px] text-text-muted">{{ formatDate(note.date) }}</p>
         </div>
 
+        <!-- Reacciones -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span
+            v-for="r in note.reactions"
+            :key="r.emoji"
+            class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border transition-colors cursor-pointer select-none"
+            :class="r.reacted
+              ? 'bg-accent/15 border-accent/50 text-text'
+              : 'bg-overlay border-border text-text-secondary hover:border-accent/40'"
+            :title="`${r.reacted ? 'Quitar' : 'Reaccionar'} con ${r.emoji}`"
+            @click="handleToggleReaction(note.id, r.emoji)"
+          >
+            <span>{{ r.emoji }}</span>
+            <span class="font-medium">{{ r.count }}</span>
+          </span>
+
+          <!-- Selector de emojis -->
+          <div class="relative inline-flex">
+            <button
+              class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border border-border bg-overlay text-text-muted hover:text-text hover:border-accent/40 transition-colors"
+              :title="'Agregar reacción'"
+              @click="toggleEmojiPicker(note.id)"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="text-[11px]">Reaccionar</span>
+            </button>
+            <div
+              v-if="openPicker === note.id"
+              class="absolute left-0 bottom-full mb-1.5 flex items-center gap-1 bg-surface border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 z-10"
+            >
+              <button
+                v-for="emoji in REACTION_EMOJIS"
+                :key="emoji"
+                class="w-7 h-7 flex items-center justify-center rounded-md text-base hover:bg-hover transition-colors"
+                :title="emoji"
+                @click="handleToggleReaction(note.id, emoji); openPicker = null"
+              >
+                {{ emoji }}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Comentarios -->
         <div class="pt-2 border-t border-border space-y-2">
           <div v-for="c in note.comments" :key="c.id" class="flex items-start gap-2">
@@ -329,6 +488,128 @@ async function handleDeleteComment(noteId: number, commentId: number) {
             >
               {{ activatingVisibility ? 'Activando...' : 'Activar perfil público' }}
             </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Modal perfil de usuario -->
+    <Teleport to="body">
+      <div
+        v-if="profileModalOpen"
+        class="fixed inset-0 z-[95] overflow-y-auto bg-black/60 backdrop-blur-sm"
+        @click="profileModalOpen = false"
+      >
+        <div class="min-h-full flex items-center justify-center p-4 sm:p-6">
+          <div
+            class="bg-canvas border border-border rounded-lg w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden my-auto"
+            @click.stop
+          >
+            <div class="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
+              <h2 class="text-lg font-semibold text-text">Perfil</h2>
+              <button
+                @click="profileModalOpen = false"
+                class="text-text-muted hover:text-text transition-colors p-1.5 rounded-md hover:bg-hover"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div v-if="profileLoading" class="p-6 text-sm text-text-muted">Cargando perfil...</div>
+
+            <div v-else-if="selectedProfile" class="overflow-y-auto p-6 space-y-5">
+              <!-- Header -->
+              <div class="flex items-center gap-4">
+                <div
+                  v-if="selectedProfile.user.avatarUrl"
+                  class="w-14 h-14 rounded-full overflow-hidden ring-2 ring-accent/30 shrink-0"
+                >
+                  <img :src="selectedProfile.user.avatarUrl" :alt="selectedProfile.user.fullName || ''" class="w-full h-full object-cover" />
+                </div>
+                <div
+                  v-else
+                  class="w-14 h-14 rounded-full bg-accent/15 text-accent flex items-center justify-center text-lg font-semibold ring-2 ring-accent/30 shrink-0"
+                >
+                  {{ selectedProfile.user.initials }}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-base font-semibold text-text truncate">
+                    {{ selectedProfile.user.fullName || 'Estudiante' }}
+                  </p>
+                  <p class="text-xs text-text-muted">
+                    <template v-if="selectedProfile.isPrivate">
+                      <span class="inline-flex items-center gap-1 text-warning">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Este perfil es privado
+                      </span>
+                    </template>
+                    <template v-else>Perfil público</template>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Perfil privado -->
+              <div v-if="selectedProfile.isPrivate" class="bg-overlay border border-border rounded-lg p-4 text-center">
+                <p class="text-sm text-text-muted">
+                  Este estudiante tiene su perfil privado, así que sus estadísticas y notas no están disponibles.
+                </p>
+              </div>
+
+              <!-- Perfil público: stats -->
+              <div v-else>
+                <h3 class="text-xs font-medium uppercase tracking-wider text-text-muted mb-2">Estadísticas</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div class="bg-surface border border-border rounded-lg p-3 text-center">
+                    <p class="text-xl font-bold text-accent">{{ selectedProfile.stats.completedHours }}h</p>
+                    <p class="text-[10px] font-medium uppercase tracking-wider text-text-muted mt-1">Horas</p>
+                  </div>
+                  <div class="bg-surface border border-border rounded-lg p-3 text-center">
+                    <p class="text-xl font-bold text-text">{{ selectedProfile.stats.completedDays }}</p>
+                    <p class="text-[10px] font-medium uppercase tracking-wider text-text-muted mt-1">Días</p>
+                  </div>
+                  <div class="bg-surface border border-border rounded-lg p-3 text-center">
+                    <p class="text-xl font-bold text-accent">{{ selectedProfile.stats.onSiteDays }}</p>
+                    <p class="text-[10px] font-medium uppercase tracking-wider text-text-muted mt-1">Presencial</p>
+                  </div>
+                  <div class="bg-surface border border-border rounded-lg p-3 text-center">
+                    <p class="text-xl font-bold text-warning">{{ selectedProfile.stats.remoteDays }}</p>
+                    <p class="text-[10px] font-medium uppercase tracking-wider text-text-muted mt-1">Remoto</p>
+                  </div>
+                </div>
+
+                <!-- Notas públicas -->
+                <h3 class="text-xs font-medium uppercase tracking-wider text-text-muted mt-5 mb-2">
+                  Notas públicas ({{ selectedProfile.notes.length }})
+                </h3>
+                <div v-if="selectedProfile.notes.length === 0" class="text-sm text-text-muted">
+                  Este estudiante aún no tiene notas públicas.
+                </div>
+                <div v-else class="space-y-3">
+                  <div
+                    v-for="n in selectedProfile.notes"
+                    :key="n.id"
+                    class="bg-surface border border-border rounded-lg p-3 space-y-1.5"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <p class="text-sm font-semibold text-text truncate">{{ n.title || 'Sin título' }}</p>
+                      <span class="shrink-0 text-[10px] font-medium uppercase tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded">
+                        {{ tagLabel(n.tag) }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-text-secondary whitespace-pre-wrap break-words line-clamp-3">{{ n.content }}</p>
+                    <p class="text-[11px] text-text-muted">
+                      {{ formatDate(n.date) }}
+                      <span v-if="n.comments.length">· {{ n.comments.length }} comentarios</span>
+                      <span v-if="n.reactions.length">· {{ n.reactions.reduce((s, r) => s + r.count, 0) }} reacciones</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

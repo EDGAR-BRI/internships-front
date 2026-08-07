@@ -14,5 +14,8 @@ export function useCommunity() {
     fetchNotes: store.fetchNotes,
     addComment: store.addComment,
     deleteComment: store.deleteComment,
+    toggleReaction: store.toggleReaction,
+    searchUsers: store.searchUsers,
+    fetchPublicProfile: store.fetchPublicProfile,
   }
 }

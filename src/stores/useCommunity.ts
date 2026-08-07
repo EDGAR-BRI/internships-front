@@ -19,6 +19,12 @@ export interface CommunityComment {
   mine: boolean
 }
 
+export interface CommunityReaction {
+  emoji: string
+  count: number
+  reacted: boolean
+}
+
 export interface CommunityNote {
   id: number
   title: string | null
@@ -28,6 +34,7 @@ export interface CommunityNote {
   createdAt: string
   user: CommunityUser
   comments: CommunityComment[]
+  reactions: CommunityReaction[]
 }
 
 export interface RankingEntry {
@@ -43,13 +50,25 @@ export interface RankingEntry {
 
 export interface PublicProfile {
   user: CommunityUser
+  isPrivate?: boolean
   stats: {
     completedDays: number
     completedHours: number
     onSiteDays: number
     remoteDays: number
+    attendanceCount: number
   }
   notes: Omit<CommunityNote, 'user'>[]
+}
+
+export interface SearchResult {
+  id: number
+  fullName: string | null
+  avatarUrl: string | null
+  initials: string
+  isPrivate: boolean
+  stats?: PublicProfile['stats']
+  notesCount?: number
 }
 
 export const useCommunityStore = defineStore('community', () => {
@@ -58,6 +77,35 @@ export const useCommunityStore = defineStore('community', () => {
   const error = ref('')
   const loading = ref(false)
   const notesLoading = ref(false)
+
+  async function searchUsers(q: string): Promise<SearchResult[]> {
+    const auth = useAuthStore()
+    const data = await api.get<{ users: SearchResult[]; error?: string }>(
+      `/community/search?q=${encodeURIComponent(q)}`,
+      auth.token || undefined
+    )
+    if (data.error) error.value = data.error
+    return data.users || []
+  }
+
+  async function fetchPublicProfile(id: number): Promise<PublicProfile | null> {
+    const auth = useAuthStore()
+    const data = await api.get<{ user: PublicProfile['user'] | null; isPrivate?: boolean; stats?: PublicProfile['stats']; notes?: PublicProfile['notes']; error?: string }>(
+      `/community/users/${id}`,
+      auth.token || undefined
+    )
+    if (data.error) {
+      error.value = data.error
+      return null
+    }
+    if (!data.user) return null
+    return {
+      user: data.user,
+      isPrivate: data.isPrivate,
+      stats: data.stats || { completedDays: 0, completedHours: 0, onSiteDays: 0, remoteDays: 0, attendanceCount: 0 },
+      notes: data.notes || [],
+    }
+  }
 
   async function fetchRanking() {
     const auth = useAuthStore()
@@ -118,6 +166,20 @@ export const useCommunityStore = defineStore('community', () => {
     }
   }
 
+  async function toggleReaction(noteId: number, emoji: string): Promise<CommunityReaction[]> {
+    const auth = useAuthStore()
+    const data = await api.post<{ reactions: CommunityReaction[] }>(
+      `/community/notes/${noteId}/reactions`,
+      { emoji },
+      auth.token || undefined
+    )
+    const note = notes.value.find((n) => n.id === noteId)
+    if (note) {
+      note.reactions = data.reactions || []
+    }
+    return data.reactions || []
+  }
+
   function reset() {
     ranking.value = []
     notes.value = []
@@ -138,6 +200,9 @@ export const useCommunityStore = defineStore('community', () => {
     fetchNotes,
     addComment,
     deleteComment,
+    toggleReaction,
+    searchUsers,
+    fetchPublicProfile,
     reset,
   }
 })
