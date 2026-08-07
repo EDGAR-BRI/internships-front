@@ -6,11 +6,11 @@ import { api } from '../lib/api'
 import { tagLabel } from '../utils/noteTags'
 import type { SearchResult, PublicProfile } from '../stores/useCommunity'
 
-const { ranking, notes, error, loading, notesLoading, fetchRanking, fetchNotes, addComment, deleteComment, toggleReaction, searchUsers, fetchPublicProfile } =
+const { ranking, notes, error, loading, notesLoading, fetchRanking, fetchNotes, addComment, deleteComment, toggleReaction, toggleCommentReaction, searchUsers, fetchPublicProfile } =
   useCommunity()
 const { user: me, token, restoreSession, updateUser } = useAuth()
 
-const REACTION_EMOJIS = ['👍', '❤️', '🔥', '👏', '💡', '🎉']
+const REACTION_EMOJIS = ['👍', '❤️', '🔥', '👏', '💡', '🎉', '😂', '😮', '🥇', '🚀']
 
 const activeTab = ref<'ranking' | 'notes'>('ranking')
 
@@ -18,9 +18,39 @@ const newComment = ref<Record<number, string>>({})
 const sendingComment = ref<number | null>(null)
 const commentError = ref('')
 const openPicker = ref<number | null>(null)
+const openCommentPicker = ref<number | null>(null)
+const feedSort = ref<'popular' | 'recent'>('popular')
+const reactedIds = ref<Set<string>>(new Set())
 
 function toggleEmojiPicker(noteId: number) {
   openPicker.value = openPicker.value === noteId ? null : noteId
+  openCommentPicker.value = null
+}
+
+function toggleCommentEmojiPicker(commentId: number) {
+  openCommentPicker.value = openCommentPicker.value === commentId ? null : commentId
+  openPicker.value = null
+}
+
+function reactionKey(kind: string, id: number, emoji: string): string {
+  return `${kind}:${id}:${emoji}`
+}
+
+function triggerPop(kind: string, id: number, emoji: string) {
+  const key = reactionKey(kind, id, emoji)
+  reactedIds.value = new Set(reactedIds.value)
+  reactedIds.value.delete(key)
+  reactedIds.value.add(key)
+  setTimeout(() => {
+    const next = new Set(reactedIds.value)
+    next.delete(key)
+    reactedIds.value = next
+  }, 500)
+}
+
+function changeSort(sort: 'popular' | 'recent') {
+  feedSort.value = sort
+  fetchNotes(sort)
 }
 
 const visibilityModalOpen = ref(false)
@@ -165,6 +195,16 @@ async function handleDeleteComment(noteId: number, commentId: number) {
 async function handleToggleReaction(noteId: number, emoji: string) {
   try {
     await toggleReaction(noteId, emoji)
+    triggerPop('note', noteId, emoji)
+  } catch (e: any) {
+    commentError.value = e.message || 'Error al reaccionar'
+  }
+}
+
+async function handleToggleCommentReaction(noteId: number, commentId: number, emoji: string) {
+  try {
+    await toggleCommentReaction(noteId, commentId, emoji)
+    triggerPop('comment', commentId, emoji)
   } catch (e: any) {
     commentError.value = e.message || 'Error al reaccionar'
   }
@@ -319,6 +359,22 @@ async function handleToggleReaction(noteId: number, emoji: string) {
 
     <!-- NOTAS -->
     <div v-else class="space-y-4">
+      <div class="flex items-center gap-1 bg-overlay border border-border rounded-md p-0.5 w-fit">
+        <button
+          @click="changeSort('popular')"
+          class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
+          :class="feedSort === 'popular' ? 'bg-accent text-white' : 'text-text-muted hover:text-text'"
+        >
+          🔥 Populares
+        </button>
+        <button
+          @click="changeSort('recent')"
+          class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
+          :class="feedSort === 'recent' ? 'bg-accent text-white' : 'text-text-muted hover:text-text'"
+        >
+          Recientes
+        </button>
+      </div>
       <div v-if="notesLoading" class="text-sm text-text-muted">Cargando notas...</div>
       <div v-else-if="sortedNotes.length === 0" class="text-sm text-text-muted">
         Aún no hay notas públicas.
@@ -366,14 +422,17 @@ async function handleToggleReaction(noteId: number, emoji: string) {
           <span
             v-for="r in note.reactions"
             :key="r.emoji"
-            class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border transition-colors cursor-pointer select-none"
-            :class="r.reacted
-              ? 'bg-accent/15 border-accent/50 text-text'
-              : 'bg-overlay border-border text-text-secondary hover:border-accent/40'"
+            class="reaction-chip inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border transition-colors cursor-pointer select-none"
+            :class="[
+              r.reacted
+                ? 'bg-accent/15 border-accent/50 text-text'
+                : 'bg-overlay border-border text-text-secondary hover:border-accent/40',
+              reactedIds.has(reactionKey('note', note.id, r.emoji)) ? 'reaction-pop' : '',
+            ]"
             :title="`${r.reacted ? 'Quitar' : 'Reaccionar'} con ${r.emoji}`"
             @click="handleToggleReaction(note.id, r.emoji)"
           >
-            <span>{{ r.emoji }}</span>
+            <span class="reaction-emoji">{{ r.emoji }}</span>
             <span class="font-medium">{{ r.count }}</span>
           </span>
 
@@ -391,12 +450,12 @@ async function handleToggleReaction(noteId: number, emoji: string) {
             </button>
             <div
               v-if="openPicker === note.id"
-              class="absolute left-0 bottom-full mb-1.5 flex items-center gap-1 bg-surface border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 z-10"
+              class="absolute left-0 bottom-full mb-1.5 grid grid-cols-5 gap-0.5 bg-surface border border-border-strong rounded-lg shadow-2xl px-1.5 py-1 z-10"
             >
               <button
                 v-for="emoji in REACTION_EMOJIS"
                 :key="emoji"
-                class="w-7 h-7 flex items-center justify-center rounded-md text-base hover:bg-hover transition-colors"
+                class="w-8 h-8 flex items-center justify-center rounded-md text-lg hover:bg-hover transition-colors"
                 :title="emoji"
                 @click="handleToggleReaction(note.id, emoji); openPicker = null"
               >
@@ -412,12 +471,59 @@ async function handleToggleReaction(noteId: number, emoji: string) {
             <span class="shrink-0 w-6 h-6 rounded-full bg-overlay text-text-muted flex items-center justify-center text-[10px] font-semibold">
               {{ c.user.initials }}
             </span>
-            <div class="flex-1 min-w-0 bg-overlay border border-border rounded-md px-3 py-2">
-              <p class="text-[11px] font-medium text-text">
-                {{ c.user.fullName || 'Estudiante' }}
-                <span class="text-text-muted font-normal">· {{ timeAgo(c.createdAt) }}</span>
-              </p>
-              <p class="text-xs text-text-secondary mt-0.5 break-words">{{ c.content }}</p>
+            <div class="flex-1 min-w-0 space-y-1">
+              <div class="bg-overlay border border-border rounded-md px-3 py-2">
+                <p class="text-[11px] font-medium text-text">
+                  {{ c.user.fullName || 'Estudiante' }}
+                  <span class="text-text-muted font-normal">· {{ timeAgo(c.createdAt) }}</span>
+                </p>
+                <p class="text-xs text-text-secondary mt-0.5 break-words">{{ c.content }}</p>
+              </div>
+              <!-- Reacciones del comentario -->
+              <div class="flex flex-wrap items-center gap-1 pl-1">
+                <span
+                  v-for="r in c.reactions"
+                  :key="r.emoji"
+                  class="reaction-chip inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] border transition-colors cursor-pointer select-none"
+                  :class="[
+                    r.reacted
+                      ? 'bg-accent/15 border-accent/50 text-text'
+                      : 'bg-overlay border-border text-text-muted hover:border-accent/40',
+                    reactedIds.has(reactionKey('comment', c.id, r.emoji)) ? 'reaction-pop' : '',
+                  ]"
+                  :title="`${r.reacted ? 'Quitar' : 'Reaccionar'} con ${r.emoji}`"
+                  @click="handleToggleCommentReaction(note.id, c.id, r.emoji)"
+                >
+                  <span class="reaction-emoji">{{ r.emoji }}</span>
+                  <span class="font-medium">{{ r.count }}</span>
+                </span>
+
+                <div class="relative inline-flex">
+                  <button
+                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] border border-border bg-overlay text-text-muted hover:text-text hover:border-accent/40 transition-colors"
+                    :title="'Reaccionar al comentario'"
+                    @click="toggleCommentEmojiPicker(c.id)"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                  <div
+                    v-if="openCommentPicker === c.id"
+                    class="absolute left-0 bottom-full mb-1.5 grid grid-cols-5 gap-0.5 bg-surface border border-border-strong rounded-lg shadow-2xl px-1.5 py-1 z-10"
+                  >
+                    <button
+                      v-for="emoji in REACTION_EMOJIS"
+                      :key="emoji"
+                      class="w-7 h-7 flex items-center justify-center rounded-md text-base hover:bg-hover transition-colors"
+                      :title="emoji"
+                      @click="handleToggleCommentReaction(note.id, c.id, emoji); openCommentPicker = null"
+                    >
+                      {{ emoji }}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
             <button
               v-if="c.mine"
@@ -616,3 +722,50 @@ async function handleToggleReaction(noteId: number, emoji: string) {
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+.reaction-chip .reaction-emoji {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.reaction-chip:active .reaction-emoji {
+  transform: scale(1.35);
+}
+
+.reaction-chip.reaction-pop {
+  animation: chip-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.reaction-chip.reaction-pop .reaction-emoji {
+  animation: emoji-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes chip-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 3px var(--color-accent);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes emoji-bounce {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  40% {
+    transform: scale(1.45) rotate(-12deg);
+  }
+  70% {
+    transform: scale(0.9) rotate(8deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+</style>

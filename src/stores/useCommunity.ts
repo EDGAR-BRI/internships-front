@@ -17,6 +17,7 @@ export interface CommunityComment {
   createdAt: string
   user: CommunityUser
   mine: boolean
+  reactions: CommunityReaction[]
 }
 
 export interface CommunityReaction {
@@ -32,6 +33,7 @@ export interface CommunityNote {
   tag: string
   date: string | null
   createdAt: string
+  popularity?: number
   user: CommunityUser
   comments: CommunityComment[]
   reactions: CommunityReaction[]
@@ -125,13 +127,13 @@ export const useCommunityStore = defineStore('community', () => {
     }
   }
 
-  async function fetchNotes() {
+  async function fetchNotes(sort: 'popular' | 'recent' = 'popular') {
     const auth = useAuthStore()
     notesLoading.value = true
     error.value = ''
     try {
       const data = await api.get<{ notes: CommunityNote[]; error?: string }>(
-        '/community/notes',
+        `/community/notes?sort=${sort}`,
         auth.token || undefined
       )
       notes.value = data.notes || []
@@ -180,6 +182,25 @@ export const useCommunityStore = defineStore('community', () => {
     return data.reactions || []
   }
 
+  async function toggleCommentReaction(
+    noteId: number,
+    commentId: number,
+    emoji: string
+  ): Promise<CommunityReaction[]> {
+    const auth = useAuthStore()
+    const data = await api.post<{ reactions: CommunityReaction[] }>(
+      `/community/comments/${commentId}/reactions`,
+      { emoji },
+      auth.token || undefined
+    )
+    const note = notes.value.find((n) => n.id === noteId)
+    const comment = note?.comments.find((c) => c.id === commentId)
+    if (comment) {
+      comment.reactions = data.reactions || []
+    }
+    return data.reactions || []
+  }
+
   function reset() {
     ranking.value = []
     notes.value = []
@@ -201,6 +222,7 @@ export const useCommunityStore = defineStore('community', () => {
     addComment,
     deleteComment,
     toggleReaction,
+    toggleCommentReaction,
     searchUsers,
     fetchPublicProfile,
     reset,
