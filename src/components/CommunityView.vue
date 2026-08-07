@@ -418,11 +418,11 @@ async function handleToggleCommentReaction(noteId: number, commentId: number, em
         </div>
 
         <!-- Reacciones -->
-        <div class="flex flex-wrap items-center gap-1.5">
+        <div class="flex flex-wrap items-center gap-2.5">
           <span
             v-for="r in note.reactions"
             :key="r.emoji"
-            class="reaction-chip inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border transition-colors cursor-pointer select-none"
+            class="reaction-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-colors cursor-pointer select-none"
             :class="[
               r.reacted
                 ? 'bg-accent/15 border-accent/50 text-text'
@@ -480,11 +480,11 @@ async function handleToggleCommentReaction(noteId: number, commentId: number, em
                 <p class="text-xs text-text-secondary mt-0.5 break-words">{{ c.content }}</p>
               </div>
               <!-- Reacciones del comentario -->
-              <div class="flex flex-wrap items-center gap-1 pl-1">
+              <div class="flex flex-wrap items-center gap-2 pl-1">
                 <span
                   v-for="r in c.reactions"
                   :key="r.emoji"
-                  class="reaction-chip inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] border transition-colors cursor-pointer select-none"
+                  class="reaction-chip inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border transition-colors cursor-pointer select-none"
                   :class="[
                     r.reacted
                       ? 'bg-accent/15 border-accent/50 text-text'
@@ -500,7 +500,7 @@ async function handleToggleCommentReaction(noteId: number, commentId: number, em
 
                 <div class="relative inline-flex">
                   <button
-                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] border border-border bg-overlay text-text-muted hover:text-text hover:border-accent/40 transition-colors"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border border-border bg-overlay text-text-muted hover:text-text hover:border-accent/40 transition-colors"
                     :title="'Reaccionar al comentario'"
                     @click="toggleCommentEmojiPicker(c.id)"
                   >
