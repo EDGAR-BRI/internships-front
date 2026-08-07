@@ -7,9 +7,21 @@ import InstallBanner from '../components/InstallBanner.vue'
 interface Props {
   title: string
   description?: string
+  image?: string
+  type?: string
 }
 
-const { title, description = 'Internship Tracker - Track your internship progress' } = Astro.props
+const {
+  title,
+  description = 'Seguimiento simple para tu pasantía: bitácora, notas y asistencia en un solo lugar.',
+  image = '/og-image.png',
+  type = 'website',
+} = Astro.props
+
+const siteName = 'Internship Tracker'
+const url = Astro.url
+const ogImage = new URL(image, url).toString()
+const ogUrl = url.toString()
 ---
 
 <!doctype html>
@@ -19,10 +31,28 @@ const { title, description = 'Internship Tracker - Track your internship progres
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#000000" />
+    <link rel="canonical" href={ogUrl} />
+
+    <!-- Open Graph -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={ogUrl} />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:locale" content="es_MX" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={description} />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <link rel="preload" href={interFont} as="font" type="font/woff2" crossorigin />
     <script type="speculationrules">
       {
