@@ -242,7 +242,7 @@ function isActive(path: string): boolean {
 
     <!-- Mobile bottom tab bar -->
     <nav v-if="isAuthenticated" class="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-canvas border-t border-border">
-      <div class="relative flex items-stretch justify-around h-14">
+      <div class="relative grid grid-cols-5 h-14">
         <button
           @click="noteModalOpen = true"
           class="absolute left-1/2 -translate-x-1/2 -top-5 z-10 w-12 h-12 rounded-full bg-accent hover:bg-accent-hover active:scale-95 text-white shadow-lg shadow-accent/30 border-4 border-canvas transition-colors flex items-center justify-center"
@@ -256,7 +256,7 @@ function isActive(path: string): boolean {
 
         <a
           href="/dashboard"
-          class="flex flex-col items-center justify-center gap-0.5 flex-1 transition-colors"
+          class="flex flex-col items-center justify-center gap-0.5 transition-colors"
           :class="isActive('/dashboard') ? 'text-accent' : 'text-text-muted'"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,7 +267,7 @@ function isActive(path: string): boolean {
 
         <a
           href="/bitacora"
-          class="flex flex-col items-center justify-center gap-0.5 flex-1 mr-7 transition-colors"
+          class="flex flex-col items-center justify-center gap-0.5 transition-colors"
           :class="isActive('/bitacora') ? 'text-accent' : 'text-text-muted'"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -276,9 +276,11 @@ function isActive(path: string): boolean {
           <span class="text-[10px] font-medium">Bitácora</span>
         </a>
 
+        <div></div>
+
         <a
           href="/asistencia"
-          class="flex flex-col items-center justify-center gap-0.5 flex-1 ml-7 transition-colors"
+          class="flex flex-col items-center justify-center gap-0.5 transition-colors"
           :class="isActive('/asistencia') ? 'text-accent' : 'text-text-muted'"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -289,7 +291,7 @@ function isActive(path: string): boolean {
 
         <a
           href="/comunidad"
-          class="flex flex-col items-center justify-center gap-0.5 flex-1 transition-colors"
+          class="flex flex-col items-center justify-center gap-0.5 transition-colors"
           :class="isActive('/comunidad') ? 'text-accent' : 'text-text-muted'"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
