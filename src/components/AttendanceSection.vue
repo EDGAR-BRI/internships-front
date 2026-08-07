@@ -43,6 +43,9 @@ const editTarget = ref<Attendance | null>(null)
 const editModalOpen = ref(false)
 
 const historyView = ref<'list' | 'calendar'>('list')
+const filterType = ref<'all' | 'full' | 'partial'>('all')
+const filterMode = ref<'all' | 'on_site' | 'remote'>('all')
+const filterMonth = ref('all')
 
 const deleteId = ref<number | null>(null)
 const deleteConfirmText = ref('')
@@ -58,6 +61,37 @@ const today = computed(() =>
     timeZone: 'America/Mexico_City',
   })
 )
+
+const availableMonths = computed(() => {
+  const map = new Map<string, string>()
+  for (const a of attendances.value) {
+    const month = a.date.slice(0, 7)
+    if (!map.has(month)) {
+      const [y, m] = month.split('-').map(Number)
+      map.set(
+        month,
+        new Date(y, m - 1, 1).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
+      )
+    }
+  }
+  return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]))
+})
+
+const filteredAttendances = computed(() => {
+  let list = [...attendances.value]
+  if (filterType.value !== 'all') {
+    list = list.filter((a) =>
+      filterType.value === 'full' ? !!a.isFullDay : !a.isFullDay
+    )
+  }
+  if (filterMode.value !== 'all') {
+    list = list.filter((a) => a.mode === filterMode.value)
+  }
+  if (filterMonth.value !== 'all') {
+    list = list.filter((a) => a.date.slice(0, 7) === filterMonth.value)
+  }
+  return list
+})
 
 const selectedAtt = computed(() => attendanceForDate(selectedDate.value))
 
@@ -468,6 +502,7 @@ onUnmounted(() => {
           id="attendance-date"
           v-model="selectedDate"
           type="date"
+          :max="todayInMexicoCity()"
           class="w-full sm:w-auto bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
         />
       </div>
@@ -590,8 +625,38 @@ onUnmounted(() => {
 
     <!-- Lista reciente -->
     <div data-tour="attendance-history" class="space-y-3">
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <h2 class="text-sm font-semibold text-text">Historial</h2>
+        <div class="flex items-center gap-2">
+          <select
+            v-model="filterMonth"
+            class="bg-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text focus:outline-none focus:border-accent"
+          >
+            <option value="all">Todos los meses</option>
+            <option v-for="[value, label] in availableMonths" :key="value" :value="value">
+              {{ label }}
+            </option>
+          </select>
+          <select
+            v-model="filterType"
+            class="bg-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text focus:outline-none focus:border-accent"
+          >
+            <option value="all">Todos los tipos</option>
+            <option value="full">Día completo</option>
+            <option value="partial">Parcial</option>
+          </select>
+          <select
+            v-model="filterMode"
+            class="bg-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text focus:outline-none focus:border-accent"
+          >
+            <option value="all">Toda modalidad</option>
+            <option value="on_site">Presencial</option>
+            <option value="remote">Remoto</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-text-muted">{{ filteredAttendances.length }} registros</span>
         <div class="flex items-center gap-1 bg-overlay border border-border rounded-md p-0.5">
           <button
             @click="historyView = 'list'"
@@ -612,7 +677,7 @@ onUnmounted(() => {
 
       <AttendanceCalendar
         v-if="historyView === 'calendar'"
-        :attendances="attendances"
+        :attendances="filteredAttendances"
         :settings="settings"
         :summary="summary"
         compact
@@ -620,12 +685,12 @@ onUnmounted(() => {
 
       <template v-if="historyView === 'list'">
       <div v-if="loading" class="text-sm text-text-muted">Cargando...</div>
-      <div v-else-if="attendances.length === 0" class="text-sm text-text-muted">
+      <div v-else-if="filteredAttendances.length === 0" class="text-sm text-text-muted">
         No hay asistencias registradas.
       </div>
       <div v-else class="space-y-2">
         <div
-          v-for="a in attendances.slice(0, 30)"
+          v-for="a in filteredAttendances.slice(0, 30)"
           :key="a.id"
           class="bg-surface border border-border rounded-lg p-3"
         >

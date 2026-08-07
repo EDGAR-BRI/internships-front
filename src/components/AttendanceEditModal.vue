@@ -25,6 +25,10 @@ const mode = ref<'on_site' | 'remote'>('on_site')
 const saving = ref(false)
 const error = ref('')
 
+function todayInMexicoCity(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' })
+}
+
 function addHoursToTime(time: string, h: number): string {
   const [hh, mm] = time.split(':').map(Number)
   if (isNaN(hh) || isNaN(mm)) return ''
@@ -148,6 +152,7 @@ function handleKeydown(e: KeyboardEvent) {
                 <input
                   v-model="date"
                   type="date"
+                  :max="todayInMexicoCity()"
                   class="w-full bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 />
               </div>
