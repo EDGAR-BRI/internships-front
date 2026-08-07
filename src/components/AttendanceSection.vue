@@ -293,8 +293,8 @@ async function handlePartial() {
   actionError.value = ''
   try {
     const hours = Number(partialHours.value)
-    if (!hours || hours <= 0) {
-      actionError.value = 'Ingresa una cantidad válida de horas'
+    if (!hours || hours <= 0 || hours > 10) {
+      actionError.value = 'Ingresa una cantidad válida de horas (máximo 10h)'
       return
     }
     await registerPartial(
@@ -575,9 +575,10 @@ onUnmounted(() => {
           <input
             v-model.number="partialHours"
             type="number"
-            min="1"
-            :max="summary?.fullDayHours || 24"
-            placeholder="Ej. 4"
+            min="0.5"
+            step="0.5"
+            max="10"
+            placeholder="Ej. 4.5"
             class="flex-1 bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
           />
           <button
@@ -588,7 +589,7 @@ onUnmounted(() => {
             {{ actionLoading ? 'Guardando...' : 'Guardar' }}
           </button>
         </div>
-        <p class="text-xs text-text-muted">Máximo {{ summary?.fullDayHours || 8 }}h (tu jornada configurada).</p>
+        <p class="text-xs text-text-muted">Máximo 10h por día. Puedes usar decimales (ej. 4.5h).</p>
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1.5">
             <label for="partial-start-time" class="block text-xs font-medium text-text-secondary">

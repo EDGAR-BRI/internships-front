@@ -84,8 +84,8 @@ async function handleSave() {
       payload.isFullDay = true
     } else {
       const hrs = Number(hours.value)
-      if (!hrs || hrs <= 0) {
-        error.value = 'Ingresa una cantidad válida de horas'
+      if (!hrs || hrs <= 0 || hrs > 10) {
+        error.value = 'Ingresa una cantidad válida de horas (máximo 10h)'
         return
       }
       payload.isFullDay = false
@@ -182,9 +182,10 @@ function handleKeydown(e: KeyboardEvent) {
                 <input
                   v-model.number="hours"
                   type="number"
-                  min="1"
-                  max="24"
-                  placeholder="Ej. 4"
+                  min="0.5"
+                  step="0.5"
+                  max="10"
+                  placeholder="Ej. 4.5"
                   class="w-full bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 />
               </div>
