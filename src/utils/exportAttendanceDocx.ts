@@ -39,6 +39,15 @@ function formatTime12(iso: string | null): string {
   return `${hour}:${minute}`
 }
 
+function formatClockTime(value: string | null | undefined): string {
+  if (!value) return ''
+  const m = value.match(/^(\d{1,2}):(\d{2})$/)
+  if (!m) return formatTime12(value)
+  const hour = Number(m[1])
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12
+  return `${hour12}:${m[2]}`
+}
+
 interface SheetWeek {
   week: number
   days: Attendance[]
@@ -81,7 +90,12 @@ function buildDataRow(
   return prefix + [cell0, ...rest].join('') + suffix
 }
 
-function buildSheet(tableXml: string, weeks: SheetWeek[]): string {
+function buildSheet(
+  tableXml: string,
+  weeks: SheetWeek[],
+  workStartTime: string | null,
+  workEndTime: string | null
+): string {
   const rows = tableXml.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) ?? []
   if (rows.length < 18) return tableXml
 
@@ -98,13 +112,20 @@ function buildSheet(tableXml: string, weeks: SheetWeek[]): string {
     const blockRows = Math.max(ROWS_PER_BLOCK, dayCount)
     for (let r = 0; r < blockRows; r++) {
       const day = week ? week.days[r] ?? null : null
+      const fullDay = !!day?.isFullDay
+      const checkIn = fullDay
+        ? formatClockTime(workStartTime)
+        : formatClockTime(day?.checkIn) || formatClockTime(workStartTime)
+      const checkOut = fullDay
+        ? formatClockTime(workEndTime)
+        : formatClockTime(day?.checkOut) || formatClockTime(workEndTime)
       dataRows.push(
         buildDataRow(dataTemplate, {
           merge: week ? (r === 0 ? 'restart' : 'continue') : 'none',
           week: r === 0 && week ? String(week.week) : '',
           date: day ? formatDateShort(day.date) : '',
-          checkIn: day ? formatTime12(day.checkIn) : '',
-          checkOut: day ? formatTime12(day.checkOut) : '',
+          checkIn,
+          checkOut,
         })
       )
     }
@@ -157,8 +178,12 @@ export async function generateAttendanceDocx(
 
   const headerPart = xml.slice(0, xml.indexOf(tableXml))
   const tailPart = xml.slice(xml.lastIndexOf('</w:tbl>') + '</w:tbl>'.length)
-  const footerClean = tailPart.replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/, '')
+  const footerClean = tailPart
+    .replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/, '')
+    .replace(/<\/w:body>\s*<\/w:document>/, '')
   const pageBreak = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
+  const workStartTime = data.settings?.workStartTime ?? null
+  const workEndTime = data.settings?.workEndTime ?? null
 
   const sheetGroups: SheetWeek[][] = []
   for (let i = 0; i < weeks.length; i += BLOCKS_PER_SHEET) {
@@ -168,7 +193,7 @@ export async function generateAttendanceDocx(
 
   let body = headerPart
   for (let i = 0; i < sheetGroups.length; i++) {
-    body += buildSheet(tableXml, sheetGroups[i])
+    body += buildSheet(tableXml, sheetGroups[i], workStartTime, workEndTime)
     body += i < sheetGroups.length - 1 ? footerClean + pageBreak : tailPart
   }
 
