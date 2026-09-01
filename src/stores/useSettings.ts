@@ -10,6 +10,7 @@ export interface UserSettings {
   userId: number
   startDate: string
   endDate: string
+  ci: string | null
   skippedWeeks: number[] | null
   workType: 'full' | 'partial' | null
   workHoursPerDay: number | null

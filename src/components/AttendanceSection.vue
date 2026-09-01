@@ -2,7 +2,10 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAttendances, type Attendance } from '../composables/useAttendances'
 import { useSettings } from '../composables/useSettings'
+import { useAuth } from '../composables/useAuth'
+import { useSubscription } from '../composables/useSubscription'
 import { computeWeek } from '../utils/week'
+import { buildAttendanceDocx, downloadDocx } from '../utils/exportAttendanceDocx'
 import AttendanceCalendar from './AttendanceCalendar.vue'
 import AttendanceEditModal from './AttendanceEditModal.vue'
 import AttendanceCharts from './AttendanceCharts.vue'
@@ -23,6 +26,43 @@ const {
 } = useAttendances()
 
 const { settings, fetchSettings } = useSettings()
+const { user } = useAuth()
+const { mySubscription, fetchMySubscription } = useSubscription()
+
+const exporting = ref(false)
+
+const canExport = computed(() => mySubscription.value?.canExport ?? true)
+
+async function handleExport() {
+  if (!canExport.value) {
+    window.dispatchEvent(
+      new CustomEvent('upgrade-offer', {
+        detail: {
+          message:
+            'La exportación del control de asistencia está disponible en el plan Pro. Actualiza por $3 (pago único) para exportar tus asistencias.',
+        },
+      })
+    )
+    return
+  }
+  if (exporting.value) return
+  exporting.value = true
+  try {
+    await Promise.all([fetchAttendances(), fetchSummary()])
+    if (error.value) throw new Error(error.value)
+    const blob = await buildAttendanceDocx({
+      fullName: user.value?.fullName ?? null,
+      settings: settings.value,
+      attendances: attendances.value,
+      summary: summary.value,
+    })
+    downloadDocx(blob)
+  } catch (e) {
+    console.error('Error al exportar la asistencia', e)
+  } finally {
+    exporting.value = false
+  }
+}
 
 function openSettingsModal() {
   window.dispatchEvent(new CustomEvent('open-settings-modal'))
@@ -331,6 +371,7 @@ onMounted(() => {
   fetchAttendances()
   fetchSummary()
   fetchSettings()
+  fetchMySubscription()
   window.addEventListener('settings-saved', fetchSummary)
 })
 
@@ -347,9 +388,21 @@ onUnmounted(() => {
         <h1 class="text-lg font-semibold text-text">Asistencia</h1>
         <p class="text-sm text-text-muted capitalize">{{ today }}</p>
       </div>
-      <div v-if="currentWeek" class="text-right">
-        <p class="text-xs text-text-muted">Semana de pasantía</p>
-        <p class="text-lg font-bold text-accent">{{ currentWeek }}</p>
+      <div class="flex items-center gap-3">
+        <button
+          @click="handleExport"
+          :disabled="exporting"
+          class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          {{ exporting ? 'Exportando…' : 'Exportar asistencia' }}
+        </button>
+        <div v-if="currentWeek" class="text-right">
+          <p class="text-xs text-text-muted">Semana de pasantía</p>
+          <p class="text-lg font-bold text-accent">{{ currentWeek }}</p>
+        </div>
       </div>
     </div>
 
