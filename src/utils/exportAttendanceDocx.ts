@@ -1,53 +1,20 @@
-import {
-  AlignmentType,
-  BorderStyle,
-  Document,
-  Packer,
-  Paragraph,
-  Table,
-  TableCell,
-  TableLayoutType,
-  TableRow,
-  TabStopType,
-  TextRun,
-  VerticalAlign,
-  WidthType,
-} from 'docx'
+import JSZip from 'jszip'
 import type { Attendance, AttendanceSummary } from '../composables/useAttendances'
 import type { UserSettings } from '../composables/useSettings'
 import { computeWeek } from './week'
 
-const PAGE_WIDTH_DXA = 10800
-const DATE_COL = 1400
-const TIME_COL = Math.floor((PAGE_WIDTH_DXA - DATE_COL) / 8)
+const TEMPLATE_URL = '/asistencias.docx'
+const FILENAME = 'control-asistencia.docx'
+const BLOCKS_PER_SHEET = 3
+const ROWS_PER_BLOCK = 5
 
-const BORDER = {
-  style: BorderStyle.SINGLE,
-  size: 4,
-  color: '000000',
-}
+const FILLED_PARA = (value: string) =>
+  `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">${escapeXml(value)}</w:t></w:r></w:p>`
 
-function borders() {
-  return {
-    top: BORDER,
-    bottom: BORDER,
-    left: BORDER,
-    right: BORDER,
-    insideHorizontal: BORDER,
-    insideVertical: BORDER,
-  }
-}
+const EMPTY_PARA = '<w:p/>'
 
-function formatTime(iso: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  return d.toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-    timeZone: 'America/Mexico_City',
-  })
+function escapeXml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 function formatDateShort(iso: string): string {
@@ -57,118 +24,93 @@ function formatDateShort(iso: string): string {
   return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`
 }
 
-function cell(
-  children: Paragraph[],
-  opts: { width?: number; span?: number } = {}
-): TableCell {
-  return new TableCell({
-    children,
-    width: { size: opts.width ?? TIME_COL, type: WidthType.DXA },
-    columnSpan: opts.span,
-    verticalAlign: VerticalAlign.CENTER,
-    margins: { top: 40, bottom: 40, left: 80, right: 80 },
-  })
+function formatTime12(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const parts = new Intl.DateTimeFormat('es-MX', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'America/Mexico_City',
+  }).formatToParts(d)
+  const hour = parts.find((p) => p.type === 'hour')?.value ?? ''
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? ''
+  return `${hour}:${minute}`
 }
 
-function emptyCell(width?: number, span?: number): TableCell {
-  return cell([new Paragraph({ children: [] })], { width, span })
+interface SheetWeek {
+  week: number
+  days: Attendance[]
 }
 
-function textCell(text: string, opts: { bold?: boolean; center?: boolean } = {}): TableCell {
-  const run = new TextRun({ text, bold: opts.bold })
-  const paragraph = new Paragraph({
-    children: [run],
-    alignment: opts.center === false ? AlignmentType.LEFT : AlignmentType.CENTER,
-  })
-  return cell([paragraph])
-}
-
-function headerRow(colspan: number, label: string, width: number): TableRow {
-  return new TableRow({
-    children: [
-      emptyCell(DATE_COL),
-      new TableCell({
-        children: [
-          new Paragraph({
-            children: [new TextRun({ text: label, bold: true })],
-            alignment: AlignmentType.CENTER,
-          }),
-        ],
-        columnSpan: colspan,
-        width: { size: width, type: WidthType.DXA },
-        verticalAlign: VerticalAlign.CENTER,
-        margins: { top: 60, bottom: 60, left: 80, right: 80 },
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            children: [new TextRun({ text: 'TARDE', bold: true })],
-            alignment: AlignmentType.CENTER,
-          }),
-        ],
-        columnSpan: 4,
-        width: { size: width, type: WidthType.DXA },
-        verticalAlign: VerticalAlign.CENTER,
-        margins: { top: 60, bottom: 60, left: 80, right: 80 },
-      }),
-    ],
-  })
-}
-
-function subHeaderRow(): TableRow {
-  const sub = ['HORA DE ENTRADA', 'FIRMA', 'HORA DE SALIDA', 'FIRMA']
-  const cells: TableCell[] = [emptyCell(DATE_COL)]
-  for (const label of sub) {
-    cells.push(textCell(label, { bold: true, center: true }))
+function buildDataRow(
+  templateRow: string,
+  opts: {
+    merge: 'restart' | 'continue' | 'none'
+    week: string
+    date: string
+    checkIn: string
+    checkOut: string
   }
-  for (const label of sub) {
-    cells.push(textCell(label, { bold: true, center: true }))
-  }
-  return new TableRow({ children: cells })
-}
+): string {
+  const cells = templateRow.match(/<w:tc>[\s\S]*?<\/w:tc>/g) ?? []
+  if (cells.length !== 10) return templateRow
 
-function dataRow(weekLabel: string, date: string, checkIn: string | null, checkOut: string | null): TableRow {
-  const dateCell = cell([
-    new Paragraph({
-      children: [new TextRun({ text: weekLabel, bold: true })],
-      alignment: AlignmentType.CENTER,
-    }),
-    new Paragraph({
-      children: [new TextRun({ text: date })],
-      alignment: AlignmentType.CENTER,
-    }),
-  ], { width: DATE_COL })
+  const prefix = templateRow.slice(0, templateRow.indexOf(cells[0])).replace(/<w:tr[^>]*>/, '<w:tr>')
+  const last = cells[cells.length - 1]
+  const suffix = templateRow.slice(templateRow.lastIndexOf(last) + last.length)
 
-  const cells: TableCell[] = [dateCell]
-  for (let i = 0; i < 8; i++) {
-    let value = ''
-    if (i === 0) value = formatTime(checkIn)
-    if (i === 2) value = formatTime(checkOut)
-    cells.push(textCell(value, { center: true }))
-  }
-  return new TableRow({ children: cells })
-}
+  const cell0 = cells[0]
+    .replace(
+      /<w:vMerge[^/]*\/>/,
+      opts.merge === 'restart'
+        ? '<w:vMerge w:val="restart"/><w:vAlign w:val="center"/>'
+        : opts.merge === 'continue'
+          ? '<w:vMerge/>'
+          : ''
+    )
+    .replace(/<w:p[^>]*\/>/, opts.merge === 'restart' ? FILLED_PARA(opts.week) : EMPTY_PARA)
 
-function totalRow(totalDays: number): TableRow {
-  return new TableRow({
-    children: [
-      new TableCell({
-        children: [
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'TOTAL DÍAS ACUMULADOS: ', bold: true }),
-              new TextRun({ text: `${totalDays}`, bold: true }),
-            ],
-            alignment: AlignmentType.CENTER,
-          }),
-        ],
-        columnSpan: 9,
-        width: { size: PAGE_WIDTH_DXA, type: WidthType.DXA },
-        verticalAlign: VerticalAlign.CENTER,
-        margins: { top: 60, bottom: 60, left: 80, right: 80 },
-      }),
-    ],
+  const fillMap: Record<number, string> = { 1: opts.date, 2: opts.checkIn, 8: opts.checkOut }
+  const rest = cells.slice(1).map((c, i) => {
+    const value = fillMap[i + 1]
+    return c.replace(/<w:p[^>]*\/>/, value ? FILLED_PARA(value) : EMPTY_PARA)
   })
+
+  return prefix + [cell0, ...rest].join('') + suffix
+}
+
+function buildSheet(tableXml: string, weeks: SheetWeek[]): string {
+  const rows = tableXml.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) ?? []
+  if (rows.length < 18) return tableXml
+
+  const tblPr = tableXml.match(/<w:tblPr>[\s\S]*?<\/w:tblPr>/)?.[0] ?? ''
+  const tblGrid = tableXml.match(/<w:tblGrid>[\s\S]*?<\/w:tblGrid>/)?.[0] ?? ''
+  const headerRows = rows.slice(0, 2).join('')
+  const totalRow = rows[rows.length - 1]
+  const dataTemplate = rows[2]
+
+  const dataRows: string[] = []
+  for (let b = 0; b < BLOCKS_PER_SHEET; b++) {
+    const week = weeks[b]
+    const dayCount = week ? week.days.length : 0
+    const blockRows = Math.max(ROWS_PER_BLOCK, dayCount)
+    for (let r = 0; r < blockRows; r++) {
+      const day = week ? week.days[r] ?? null : null
+      dataRows.push(
+        buildDataRow(dataTemplate, {
+          merge: week ? (r === 0 ? 'restart' : 'continue') : 'none',
+          week: r === 0 && week ? String(week.week) : '',
+          date: day ? formatDateShort(day.date) : '',
+          checkIn: day ? formatTime12(day.checkIn) : '',
+          checkOut: day ? formatTime12(day.checkOut) : '',
+        })
+      )
+    }
+  }
+
+  return `<w:tbl>${tblPr}${tblGrid}${headerRows}${dataRows.join('')}${totalRow}</w:tbl>`
 }
 
 export interface AttendanceExportData {
@@ -178,106 +120,72 @@ export interface AttendanceExportData {
   summary: AttendanceSummary | null
 }
 
-export async function buildAttendanceDocx(data: AttendanceExportData): Promise<Blob> {
-  const { fullName, settings, attendances, summary } = data
-  const ci = settings?.ci?.trim() || ''
+export async function generateAttendanceDocx(
+  templateBuffer: ArrayBuffer,
+  data: AttendanceExportData
+): Promise<Blob> {
+  const zip = await JSZip.loadAsync(templateBuffer)
+  const docFile = zip.file('word/document.xml')
+  if (!docFile) throw new Error('Plantilla de asistencia inválida')
+  let xml = await docFile.async('string')
 
-  const sorted = [...attendances].sort((a, b) => a.date.localeCompare(b.date))
-  const rows = sorted.map((a) => {
-    const week = settings?.startDate
-      ? computeWeek(settings.startDate.slice(0, 10), a.date, settings.skippedWeeks)
+  const fullName = (data.fullName || '').trim()
+  const ci = (data.settings?.ci || '').trim()
+  xml = xml.replace(
+    '>NOMBRE DEL PASANTE: </w:t>',
+    `>NOMBRE DEL PASANTE: ${escapeXml(fullName)} </w:t>`
+  )
+  xml = xml.replace('>C.I:</w:t>', `>C.I: ${escapeXml(ci)}</w:t>`)
+
+  const sorted = [...data.attendances].sort((a, b) => a.date.localeCompare(b.date))
+  const weekMap = new Map<number, Attendance[]>()
+  for (const attendance of sorted) {
+    const week = data.settings?.startDate
+      ? computeWeek(data.settings.startDate.slice(0, 10), attendance.date, data.settings.skippedWeeks)
       : null
-    const weekLabel = week !== null && week !== undefined ? `Semana ${week}` : ''
-    return dataRow(weekLabel, formatDateShort(a.date), a.checkIn, a.checkOut)
+    if (week === null || week === undefined) continue
+    const list = weekMap.get(week) ?? []
+    list.push(attendance)
+    weekMap.set(week, list)
+  }
+  const weeks: SheetWeek[] = [...weekMap.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([week, days]) => ({ week, days }))
+
+  const tableXml = xml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/)?.[0]
+  if (!tableXml) throw new Error('Plantilla de asistencia inválida')
+
+  const headerPart = xml.slice(0, xml.indexOf(tableXml))
+  const tailPart = xml.slice(xml.lastIndexOf('</w:tbl>') + '</w:tbl>'.length)
+  const footerClean = tailPart.replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/, '')
+  const pageBreak = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
+
+  const sheetGroups: SheetWeek[][] = []
+  for (let i = 0; i < weeks.length; i += BLOCKS_PER_SHEET) {
+    sheetGroups.push(weeks.slice(i, i + BLOCKS_PER_SHEET))
+  }
+  if (sheetGroups.length === 0) sheetGroups.push([])
+
+  let body = headerPart
+  for (let i = 0; i < sheetGroups.length; i++) {
+    body += buildSheet(tableXml, sheetGroups[i])
+    body += i < sheetGroups.length - 1 ? footerClean + pageBreak : tailPart
+  }
+
+  zip.file('word/document.xml', body)
+  return zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   })
-
-  const totalDays = summary?.completedDays ?? sorted.length
-
-  const children: Array<Paragraph | Table> = [
-    new Paragraph({
-      children: [new TextRun({ text: 'CONTROL DE ASISTENCIA', bold: true, underline: {}, size: 32 })],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 200 },
-    }),
-    new Paragraph({
-      tabStops: [{ type: TabStopType.LEFT, position: 6000 }],
-      children: [
-        new TextRun({ text: 'NOMBRE DEL PASANTE:  ', bold: true }),
-        new TextRun({ text: fullName || '' }),
-        new TextRun({ text: '\tC.I: ', bold: true }),
-        new TextRun({ text: ci }),
-      ],
-      spacing: { after: 160 },
-    }),
-    new Table({
-      rows: [
-        headerRow(4, 'MAÑANA', PAGE_WIDTH_DXA - DATE_COL),
-        subHeaderRow(),
-        ...rows,
-        totalRow(totalDays),
-      ],
-      width: { size: PAGE_WIDTH_DXA, type: WidthType.DXA },
-      layout: TableLayoutType.FIXED,
-      borders: borders(),
-    }),
-    new Paragraph({ children: [], spacing: { before: 200, after: 120 } }),
-    new Paragraph({
-      children: [new TextRun({ text: 'Observaciones:', bold: true })],
-      spacing: { after: 80 },
-    }),
-    new Paragraph({ children: [new TextRun({ text: '' })], spacing: { after: 80 } }),
-    new Paragraph({ children: [new TextRun({ text: '' })], spacing: { after: 240 } }),
-    new Paragraph({
-      tabStops: [
-        { type: TabStopType.LEFT, position: 2200 },
-        { type: TabStopType.LEFT, position: 5500 },
-        { type: TabStopType.LEFT, position: 8800 },
-      ],
-      children: [
-        new TextRun({ text: '____________________________', underline: {} }),
-        new TextRun({ text: '\t____________________________' }),
-        new TextRun({ text: '\t____________________________' }),
-      ],
-      spacing: { after: 80 },
-    }),
-    new Paragraph({
-      tabStops: [
-        { type: TabStopType.LEFT, position: 2200 },
-        { type: TabStopType.LEFT, position: 5500 },
-        { type: TabStopType.LEFT, position: 8800 },
-      ],
-      children: [
-        new TextRun({ text: 'Nombre del Tutor Empresarial' }),
-        new TextRun({ text: '\tFirma del Tutor Empresarial' }),
-        new TextRun({ text: '\tSello de la Empresa' }),
-      ],
-    }),
-  ]
-
-  const doc = new Document({
-    styles: {
-      default: {
-        document: {
-          run: { font: 'Arial', size: 20 },
-        },
-      },
-    },
-    sections: [
-      {
-        properties: {
-          page: {
-            margin: { top: 720, right: 720, bottom: 720, left: 720 },
-          },
-        },
-        children,
-      },
-    ],
-  })
-
-  return Packer.toBlob(doc)
 }
 
-export function downloadDocx(blob: Blob, filename = 'control-asistencia.docx'): void {
+export async function buildAttendanceDocx(data: AttendanceExportData): Promise<Blob> {
+  const res = await fetch(TEMPLATE_URL)
+  if (!res.ok) throw new Error('No se pudo cargar la plantilla de asistencia')
+  return generateAttendanceDocx(await res.arrayBuffer(), data)
+}
+
+export function downloadDocx(blob: Blob, filename = FILENAME): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
