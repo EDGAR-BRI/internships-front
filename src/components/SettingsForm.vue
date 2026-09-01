@@ -167,7 +167,7 @@ async function handleSubmit() {
         v-model="tutorName"
         type="text"
         maxlength="100"
-        placeholder="Ej. Ing. Zarkys Salas"
+        placeholder="Ing. Zandalio Zapata"
         class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
       />
       <p class="text-xs text-text-muted">Aparece en la línea del tutor en el control de asistencia exportado.</p>

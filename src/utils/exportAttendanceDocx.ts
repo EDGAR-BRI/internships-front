@@ -163,9 +163,21 @@ export async function generateAttendanceDocx(
   xml = xml.replace('>C.I:</w:t>', `>C.I: ${escapeXml(ci)}</w:t>`)
 
   const tutorName = (data.settings?.tutorName || '').trim()
-  if (tutorName) {
-    xml = xml.replace('Nombre del Tutor Empresarial', escapeXml(tutorName))
-  }
+  const TUTOR_PARA = (name: string) =>
+    `<w:p><w:pPr><w:tabs><w:tab w:val="center" w:pos="2428"/></w:tabs><w:rPr><w:b/></w:rPr></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:tab/><w:t>${escapeXml(name)}</w:t></w:r></w:p>`
+
+  const RAYA = '____________________________'
+  const SIGN_TABS = '<w:tabs><w:tab w:val="center" w:pos="2428"/><w:tab w:val="center" w:pos="7285"/><w:tab w:val="center" w:pos="12142"/></w:tabs>'
+  const SIGN_RAYAS = `<w:p><w:pPr>${SIGN_TABS}</w:pPr><w:r><w:tab/><w:t>${RAYA}</w:t></w:r><w:r><w:tab/><w:t>${RAYA}</w:t></w:r><w:r><w:tab/><w:t>${RAYA}</w:t></w:r></w:p>`
+  const SIGN_LABELS = `<w:p><w:pPr>${SIGN_TABS}</w:pPr><w:r><w:tab/><w:t>Nombre del Tutor Empresarial</w:t></w:r><w:r><w:tab/><w:t>Firma del Tutor Empresarial</w:t></w:r><w:r><w:tab/><w:t>Sello de la Empresa</w:t></w:r></w:p>`
+
+  const paraWith = (needle: string) =>
+    new RegExp(`<w:p[ >](?:(?!<\\/w:p>)[\\s\\S])*?${needle}(?:(?!<\\/w:p>)[\\s\\S])*?<\\/w:p>`)
+
+  const alignFooterTail = (tail: string) =>
+    tail
+      .replace(paraWith(RAYA), SIGN_RAYAS)
+      .replace(paraWith('Nombre del Tutor Empresarial'), SIGN_LABELS)
 
   const sorted = [...data.attendances].sort((a, b) => a.date.localeCompare(b.date))
   const weekMap = new Map<number, Attendance[]>()
@@ -191,10 +203,18 @@ export async function generateAttendanceDocx(
     .replace(/<w:document[^>]*>/, '')
     .replace(/<w:body>/, '')
   const tailPart = xml.slice(xml.lastIndexOf('</w:tbl>') + '</w:tbl>'.length)
-  const footerClean = tailPart
+  const alignedTail = alignFooterTail(tailPart)
+  const withTutor = tutorName
+    ? alignedTail.replace(
+        /([\s\S]*)(<w:p[ >][\s\S]*?____________________________[\s\S]*?<\/w:p>)/,
+        (_, before, underline) => before + TUTOR_PARA(tutorName) + underline
+      )
+    : alignedTail
+  const footerClean = withTutor
     .replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/, '')
     .replace(/<\/w:body>\s*<\/w:document>/, '')
   const pageBreak = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
+  const finalTail = withTutor
   const workStartTime = data.settings?.workStartTime ?? null
   const workEndTime = data.settings?.workEndTime ?? null
 
@@ -208,7 +228,7 @@ export async function generateAttendanceDocx(
   for (let i = 0; i < sheetGroups.length; i++) {
     if (i > 0) body += headerBlock
     body += buildSheet(tableXml, sheetGroups[i], workStartTime, workEndTime)
-    body += i < sheetGroups.length - 1 ? footerClean + pageBreak : tailPart
+    body += i < sheetGroups.length - 1 ? footerClean + pageBreak : finalTail
   }
 
   zip.file('word/document.xml', body)

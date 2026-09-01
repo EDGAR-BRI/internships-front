@@ -30,25 +30,26 @@ const { user } = useAuth()
 const { mySubscription, fetchMySubscription } = useSubscription()
 
 const exporting = ref(false)
+const exportConfirmOpen = ref(false)
+const missingData = ref<string[]>([])
 
 const canExport = computed(() => mySubscription.value?.canExportAttendance ?? true)
 
-async function handleExport() {
-  if (!canExport.value) {
-    window.dispatchEvent(
-      new CustomEvent('upgrade-offer', {
-        detail: {
-          message:
-            'La exportación del control de asistencia está disponible en el plan Pro. Actualiza por $3 (pago único) para exportar tus asistencias.',
-        },
-      })
-    )
-    return
+function missingExportData(): string[] {
+  const missing: string[] = []
+  if (!settings.value?.tutorName?.trim()) missing.push('Nombre del tutor empresarial')
+  if (!settings.value?.ci?.trim()) missing.push('C.I.')
+  if (!settings.value?.workStartTime || !settings.value?.workEndTime) {
+    missing.push('Horas de jornada (entrada y salida)')
   }
+  return missing
+}
+
+async function doExport() {
   if (exporting.value) return
   exporting.value = true
   try {
-    await Promise.all([fetchAttendances(), fetchSummary()])
+    await Promise.all([fetchAttendances(), fetchSummary(), fetchSettings(true)])
     if (error.value) throw new Error(error.value)
     const blob = await buildAttendanceDocx({
       fullName: user.value?.fullName ?? null,
@@ -62,6 +63,40 @@ async function handleExport() {
   } finally {
     exporting.value = false
   }
+}
+
+async function handleExport() {
+  if (!canExport.value) {
+    window.dispatchEvent(
+      new CustomEvent('upgrade-offer', {
+        detail: {
+          message:
+            'La exportación del control de asistencia está disponible en el plan Pro. Actualiza por $3 (pago único) para exportar tus asistencias.',
+        },
+      })
+    )
+    return
+  }
+  missingData.value = missingExportData()
+  if (missingData.value.length > 0) {
+    exportConfirmOpen.value = true
+    return
+  }
+  await doExport()
+}
+
+function exportAnyway() {
+  exportConfirmOpen.value = false
+  doExport()
+}
+
+function completeExportData() {
+  exportConfirmOpen.value = false
+  openSettingsModal()
+}
+
+function closeExportConfirm() {
+  exportConfirmOpen.value = false
 }
 
 function openSettingsModal() {
@@ -844,6 +879,56 @@ onUnmounted(() => {
                 class="flex-1 bg-error hover:bg-error-hover disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 {{ deleteLoading ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Modal de datos faltantes para exportar -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="exportConfirmOpen"
+          class="fixed inset-0 z-[70] overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          @click="closeExportConfirm"
+        >
+          <div
+            class="bg-canvas border border-border rounded-lg w-full max-w-sm shadow-2xl p-6 space-y-4"
+            @click.stop
+          >
+            <h3 class="text-lg font-semibold text-text">Faltan datos para el reporte</h3>
+            <p class="text-sm text-text-secondary">
+              Te faltan por completar en <span class="text-text font-medium">Ajustes</span>:
+            </p>
+            <ul class="text-sm text-text space-y-1">
+              <li v-for="item in missingData" :key="item" class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-warning shrink-0"></span>
+                {{ item }}
+              </li>
+            </ul>
+            <p class="text-xs text-text-muted">
+              Puedes exportar igualmente y completar los datos a mano, o llenarlos ahora.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <button
+                @click="closeExportConfirm"
+                class="flex-1 bg-overlay hover:bg-hover text-text-secondary hover:text-text px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                @click="exportAnyway"
+                class="flex-1 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Exportar igualmente
+              </button>
+              <button
+                @click="completeExportData"
+                class="flex-1 bg-warning/15 hover:bg-warning/25 text-warning px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Completar datos
               </button>
             </div>
           </div>

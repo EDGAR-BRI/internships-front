@@ -28,9 +28,9 @@ export const useSettingsStore = defineStore(
     const error = ref('')
     const lastFetched = ref(0)
 
-    async function fetchSettings() {
+    async function fetchSettings(force = false) {
       const auth = useAuthStore()
-      if (isFresh(lastFetched.value)) return
+      if (!force && isFresh(lastFetched.value)) return
 
       const background = settings.value !== null
       if (!background) loading.value = true
