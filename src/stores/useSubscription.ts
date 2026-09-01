@@ -9,6 +9,8 @@ export interface MySubscription {
   planSlug: string
   planName: string
   canExport: boolean
+  canExportAttendance: boolean
+  canUseAi: boolean
   expiresAt: string | null
 }
 

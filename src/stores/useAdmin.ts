@@ -14,6 +14,7 @@ export interface Plan {
   attendancesPerDay: number | null
   attendancesPerDayFirstDay: number | null
   canExport: boolean
+  canExportAttendance: boolean
   isDefault: boolean
 }
 

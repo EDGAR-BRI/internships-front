@@ -31,6 +31,7 @@ const newPlan = ref({
   attendancesPerDay: '',
   attendancesPerDayFirstDay: '',
   canExport: true,
+  canExportAttendance: true,
   isDefault: false,
 })
 
@@ -67,6 +68,7 @@ async function handleCreate() {
     name: newPlan.value.name.trim(),
     ...parseLimits(newPlan.value),
     canExport: newPlan.value.canExport,
+    canExportAttendance: newPlan.value.canExportAttendance,
     isDefault: newPlan.value.isDefault,
   })
   creating.value = false
@@ -78,6 +80,7 @@ async function handleCreate() {
     attendancesPerDay: '',
     attendancesPerDayFirstDay: '',
     canExport: true,
+    canExportAttendance: true,
     isDefault: false,
   }
 }
@@ -181,6 +184,12 @@ onMounted(() => {
         </div>
         <div class="flex items-end">
           <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer pb-2">
+            <input v-model="newPlan.canExportAttendance" type="checkbox" class="accent-[#0070f3]" />
+            Puede exportar asistencias
+          </label>
+        </div>
+        <div class="flex items-end">
+          <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer pb-2">
             <input v-model="newPlan.isDefault" type="checkbox" class="accent-[#0070f3]" />
             Plan por defecto
           </label>
@@ -263,6 +272,15 @@ onMounted(() => {
               class="accent-[#0070f3]"
             />
             Puede exportar
+          </label>
+          <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
+            <input
+              type="checkbox"
+              :checked="edits[plan.id]?.canExportAttendance ?? plan.canExportAttendance"
+              @change="edits[plan.id] = { ...edits[plan.id], canExportAttendance: ($event.target as HTMLInputElement).checked }"
+              class="accent-[#0070f3]"
+            />
+            Puede exportar asistencias
           </label>
           <div class="flex items-center gap-2">
             <button

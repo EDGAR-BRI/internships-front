@@ -31,7 +31,7 @@ const { mySubscription, fetchMySubscription } = useSubscription()
 
 const exporting = ref(false)
 
-const canExport = computed(() => mySubscription.value?.canExport ?? true)
+const canExport = computed(() => mySubscription.value?.canExportAttendance ?? true)
 
 async function handleExport() {
   if (!canExport.value) {
@@ -522,7 +522,7 @@ onUnmounted(() => {
       <div class="flex flex-col gap-4">
         <AttendanceModeBar :summary="summary" />
         <!-- Presencial / Remoto -->
-        <div class="flex-1 bg-surface border border-border rounded-lg p-4 space-y-2">
+        <div v-if="summary" class="flex-1 bg-surface border border-border rounded-lg p-4 space-y-2">
           <span class="text-sm font-medium text-text-secondary">Modalidad en números</span>
           <div class="flex flex-wrap gap-3">
             <div class="flex items-center gap-2">
