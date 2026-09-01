@@ -11,6 +11,7 @@ import AttendanceEditModal from './AttendanceEditModal.vue'
 import AttendanceCharts from './AttendanceCharts.vue'
 import AttendanceModeBar from './AttendanceModeBar.vue'
 import FeatureTour from './FeatureTour.vue'
+import AttendanceExportNoticeModal from './AttendanceExportNoticeModal.vue'
 
 const {
   attendances,
@@ -71,7 +72,7 @@ async function handleExport() {
       new CustomEvent('upgrade-offer', {
         detail: {
           message:
-            'La exportación del control de asistencia está disponible en el plan Pro. Actualiza por $3 (pago único) para exportar tus asistencias.',
+            'La exportación del control de asistencia está disponible en el plan Pro. ¡Bríndale un tostón a Edgar y actívalo para exportar tus asistencias!',
         },
       })
     )
@@ -944,6 +945,7 @@ onUnmounted(() => {
     />
 
     <FeatureTour :steps="tourSteps" storage-key="tour:attendance" />
+    <AttendanceExportNoticeModal :enabled="canExport" />
   </div>
 </template>
 
