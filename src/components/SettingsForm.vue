@@ -3,12 +3,14 @@ import { ref, onMounted } from 'vue'
 import { useSettings } from '../composables/useSettings'
 import { useLogEntries } from '../composables/useLogEntries'
 import { useAuth } from '../composables/useAuth'
+import { useSubscription } from '../composables/useSubscription'
 import { computeWeek } from '../utils/week'
 
 const emit = defineEmits<{ saved: [] }>()
 
 const { settings, error: settingsError, fetchSettings, updateSettings } = useSettings()
 const { logEntries, fetchLogEntries, updateLogEntry } = useLogEntries()
+const { mySubscription, fetchMySubscription } = useSubscription()
 
 const startDate = ref('')
 const endDate = ref('')
@@ -20,12 +22,16 @@ const workHoursPerDay = ref<number | ''>('')
 const daysPerWeek = ref<number | ''>('')
 const workStartTime = ref('')
 const workEndTime = ref('')
+const geminiApiKey = ref('')
+const aiSaving = ref(false)
+const aiMessage = ref('')
+const aiError = ref('')
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref(false)
 
 onMounted(async () => {
-  await fetchSettings()
+  await Promise.all([fetchSettings(), fetchMySubscription()])
   if (settings.value) {
     startDate.value = settings.value.startDate.slice(0, 10)
     endDate.value = settings.value.endDate.slice(0, 10)
@@ -45,6 +51,62 @@ function parseSkippedWeeks(input: string): number[] {
     .split(',')
     .map((s) => parseInt(s.trim(), 10))
     .filter((n) => !isNaN(n) && n > 0)
+}
+
+function requestUpgrade() {
+  window.dispatchEvent(
+    new CustomEvent('upgrade-offer', {
+      detail: {
+        message:
+          'El autocompletado con IA está disponible en el plan Pro. Actualiza por $3 (pago único) para usarlo.',
+      },
+    })
+  )
+}
+
+async function handleSaveGeminiKey() {
+  aiMessage.value = ''
+  aiError.value = ''
+  if (!mySubscription.value?.canUseAi) {
+    requestUpgrade()
+    return
+  }
+  if (!geminiApiKey.value.trim()) {
+    aiError.value = 'Ingresa tu API key de Gemini'
+    return
+  }
+  aiSaving.value = true
+  try {
+    await updateSettings({
+      startDate: startDate.value || '1970-01-01',
+      endDate: endDate.value || '1970-01-02',
+      geminiApiKey: geminiApiKey.value.trim(),
+    })
+    geminiApiKey.value = ''
+    aiMessage.value = 'API key guardada. Ya puedes autocompletar tus actividades con IA.'
+  } catch (e: any) {
+    aiError.value = e.message || 'Error al guardar la API key'
+  } finally {
+    aiSaving.value = false
+  }
+}
+
+async function handleClearGeminiKey() {
+  aiMessage.value = ''
+  aiError.value = ''
+  aiSaving.value = true
+  try {
+    await updateSettings({
+      startDate: startDate.value || '1970-01-01',
+      endDate: endDate.value || '1970-01-02',
+      geminiApiKey: '',
+    })
+    aiMessage.value = 'API key eliminada.'
+  } catch (e: any) {
+    aiError.value = e.message || 'Error al eliminar la API key'
+  } finally {
+    aiSaving.value = false
+  }
 }
 
 async function handleSubmit() {
@@ -266,6 +328,81 @@ async function handleSubmit() {
           class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
         />
         <p class="text-xs text-text-muted">Se usa en el reporte de asistencia.</p>
+      </div>
+    </div>
+
+    <div class="border-t border-border pt-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <label class="block text-sm font-medium text-text">IA — Autocompletado con Gemini</label>
+        <span
+          v-if="mySubscription?.canUseAi"
+          class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-accent/10 text-accent"
+        >
+          Disponible en tu plan
+        </span>
+      </div>
+
+      <template v-if="mySubscription?.canUseAi">
+        <p class="text-xs text-text-muted">
+          El autocompletado usa las notas de cada actividad para redactar las teorías, aprendizajes,
+          impacto y otros elementos. Obten tu API key gratis en
+          <a
+            href="https://aistudio.google.com/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-accent hover:underline"
+          >aistudio.google.com/apikey</a>.
+        </p>
+
+        <div v-if="settings?.geminiApiKey" class="flex items-center justify-between gap-2 bg-overlay border border-border rounded-md px-3 py-2">
+          <span class="text-sm text-text-secondary">
+            API key configurada: <span class="font-mono">{{ settings.geminiApiKey }}</span>
+          </span>
+          <button
+            type="button"
+            :disabled="aiSaving"
+            @click="handleClearGeminiKey"
+            class="text-xs text-text-muted hover:text-error disabled:opacity-50 transition-colors"
+          >
+            Eliminar
+          </button>
+        </div>
+
+        <div class="flex items-start gap-2">
+          <input
+            id="gemini-api-key"
+            v-model="geminiApiKey"
+            type="password"
+            autocomplete="off"
+            placeholder="Pega tu API key de Gemini"
+            class="flex-1 min-w-0 box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+          />
+          <button
+            type="button"
+            :disabled="aiSaving"
+            @click="handleSaveGeminiKey"
+            class="bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 flex-shrink-0"
+          >
+            {{ aiSaving ? 'Guardando...' : 'Guardar key' }}
+          </button>
+        </div>
+
+        <p v-if="aiMessage" class="text-xs text-accent">{{ aiMessage }}</p>
+        <p v-if="aiError" class="text-xs text-error">{{ aiError }}</p>
+      </template>
+
+      <div v-else class="bg-overlay border border-border rounded-md p-3 space-y-2">
+        <p class="text-sm text-text-secondary">
+          El autocompletado con IA es una función del plan Pro. Actualiza por $3 (pago único) para
+          configurar tu API key de Gemini y autocompletar tus actividades con IA.
+        </p>
+        <button
+          type="button"
+          @click="requestUpgrade"
+          class="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150"
+        >
+          Actualizar al plan Pro
+        </button>
       </div>
     </div>
 

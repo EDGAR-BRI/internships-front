@@ -145,6 +145,7 @@ export async function apiFetch<T = any>(path: string, options: ApiOptions = {}):
         op.id
       )
     }
+    if (error instanceof ApiError) throw error
     throw new Error(getFriendlyError(error))
   }
 }

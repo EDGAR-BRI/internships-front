@@ -18,6 +18,7 @@ export interface UserSettings {
   daysPerWeek: number | null
   workStartTime: string | null
   workEndTime: string | null
+  geminiApiKey: string | null
 }
 
 export const useSettingsStore = defineStore(
@@ -50,13 +51,7 @@ export const useSettingsStore = defineStore(
       }
     }
 
-    async function updateSettings(data: {
-      startDate: string
-      endDate: string
-      skippedWeeks?: number[]
-      workStartTime?: string | null
-      workEndTime?: string | null
-    }) {
+    async function updateSettings(data: Partial<UserSettings> & { startDate: string; endDate: string }) {
       const auth = useAuthStore()
       error.value = ''
       try {

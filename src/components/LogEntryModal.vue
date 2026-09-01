@@ -2,8 +2,11 @@
 import { ref, watch, nextTick } from 'vue'
 import type { LogEntry, LogEntryFormData } from '../composables/useLogEntries'
 import { useSettings } from '../composables/useSettings'
+import { useSubscription } from '../composables/useSubscription'
+import { useAuth } from '../composables/useAuth'
 import { appendDictatedText } from '../composables/useSpeechRecognition'
 import { computeWeek } from '../utils/week'
+import { apiFetch } from '../lib/api'
 import DictationButton from './DictationButton.vue'
 
 const props = defineProps<{
@@ -17,6 +20,7 @@ const emit = defineEmits<{
 }>()
 
 const { settings, fetchSettings } = useSettings()
+const { mySubscription, fetchMySubscription } = useSubscription()
 const name = ref('')
 const status = ref<'pending' | 'in_progress' | 'done'>('pending')
 const week = ref<number | null>(null)
@@ -30,6 +34,9 @@ const showDetails = ref(false)
 const saving = ref(false)
 const saveError = ref('')
 const newNotes = ref<string[]>([''])
+const aiGenerating = ref(false)
+const aiError = ref('')
+const aiLearnings = ref('')
 
 function addNote() {
   newNotes.value.push('')
@@ -76,6 +83,7 @@ watch(
   (open) => {
     if (open) {
       fetchSettings()
+      fetchMySubscription()
       if (props.entry) {
         name.value = props.entry.name
         status.value = props.entry.status
@@ -106,6 +114,8 @@ watch(
         showDetails.value = false
       }
       newNotes.value = ['']
+      aiError.value = ''
+      aiLearnings.value = ''
       saveError.value = ''
       nextTick(() => {
         document.querySelectorAll('textarea').forEach((el) => {
@@ -209,6 +219,20 @@ async function handleSubmit() {
       }
     }
 
+    const learningsText = aiLearnings.value.trim()
+    if (learningsText) {
+      const { useNotes } = await import('../composables/useNotes')
+      const { createNote } = useNotes()
+      const noteDate = datStart.value ? new Date(datStart.value).toISOString() : null
+      await createNote({
+        title: null,
+        content: learningsText,
+        tag: 'aprendizaje',
+        logEntryId: savedEntry.id,
+        date: noteDate,
+      })
+    }
+
     emit('saved', savedEntry)
     emit('close')
   } catch (e: any) {
@@ -224,6 +248,96 @@ function appendTranscript(field: 'theory' | 'impact' | 'resources', text: string
   if (field === 'theory') theory.value = next
   else if (field === 'impact') impact.value = next
   else resources.value = next
+}
+
+function openUpgradeOffer() {
+  window.dispatchEvent(
+    new CustomEvent('upgrade-offer', {
+      detail: {
+        message:
+          'El autocompletado con IA está disponible en el plan Pro. Actualiza por $3 (pago único) para usarlo.',
+      },
+    })
+  )
+}
+
+async function autocompleteWithAi() {
+  aiError.value = ''
+  if (!name.value.trim()) {
+    aiError.value = 'Escribe el nombre de la actividad primero'
+    return
+  }
+  if (!mySubscription.value?.canUseAi) {
+    openUpgradeOffer()
+    return
+  }
+
+  aiGenerating.value = true
+  try {
+    let contextNotes: { title: string | null; content: string; tag: string | null }[] = []
+    if (props.entry) {
+      const { useNotes } = await import('../composables/useNotes')
+      const { notes } = useNotes()
+      contextNotes = notes.value
+        .filter((n) => n.logEntryId === props.entry!.id)
+        .map((n) => ({ title: n.title, content: n.content, tag: n.tag }))
+    } else {
+      contextNotes = newNotes.value
+        .filter((n) => n.trim())
+        .map((content) => ({ title: null, content: content.trim(), tag: 'general' }))
+    }
+
+    const { token } = useAuth()
+    const res = await apiFetch<{
+      suggestion: { theory: string | null; learnings: string | null; impact: string | null; resources: string | null }
+    }>(
+      '/ai/suggest',
+      {
+        method: 'POST',
+        body: {
+          name: name.value.trim(),
+          area: area.value.trim() || null,
+          status: status.value,
+          notes: contextNotes,
+          fields: {
+            theory: theory.value.trim() || null,
+            impact: impact.value.trim() || null,
+            resources: resources.value.trim() || null,
+          },
+        },
+        token: token.value || undefined,
+        timeout: 45000,
+        offline: false,
+      }
+    )
+
+    const s = res.suggestion
+    if (s.theory) theory.value = s.theory
+    if (s.impact) impact.value = s.impact
+    if (s.resources) resources.value = s.resources
+    if (s.learnings) {
+      aiLearnings.value = s.learnings
+      showDetails.value = true
+      nextTick(() => {
+        const el = document.getElementById('ai-learnings') as HTMLTextAreaElement | null
+        if (el) {
+          el.style.height = 'auto'
+          el.style.height = el.scrollHeight + 'px'
+        }
+      })
+    }
+  } catch (e: any) {
+    if (e?.code === 'AI_NOT_AVAILABLE') {
+      openUpgradeOffer()
+    } else if (e?.code === 'AI_KEY_MISSING') {
+      aiError.value = 'Primero configura tu API key de Gemini en Ajustes.'
+      openSettingsModal()
+    } else {
+      aiError.value = e?.message || 'Error al generar la sugerencia'
+    }
+  } finally {
+    aiGenerating.value = false
+  }
 }
 </script>
 
@@ -420,6 +534,39 @@ function appendTranscript(field: 'theory' | 'impact' | 'resources', text: string
                   Detalles adicionales
                 </button>
 
+                <div class="mt-2">
+                  <button
+                    type="button"
+                    :disabled="aiGenerating"
+                    @click="autocompleteWithAi"
+                    class="flex items-center gap-2 w-full justify-center px-4 py-2 text-sm font-medium rounded-md bg-accent/10 text-accent hover:bg-accent/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg
+                      v-if="!aiGenerating"
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                    <svg
+                      v-else
+                      class="w-4 h-4 animate-spin"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4zm16 0a8 8 0 01-8 8v-4a4 4 0 004-4h4z" />
+                    </svg>
+                    {{ aiGenerating ? 'Generando sugerencia...' : 'Autocompletar con IA' }}
+                  </button>
+                  <p v-if="aiError" class="text-xs text-error mt-2">{{ aiError }}</p>
+                  <p v-else class="text-[11px] text-text-muted mt-2">
+                    Usa las notas de la actividad para completar teorías, aprendizajes, impacto y otros elementos.
+                  </p>
+                </div>
+
                 <Transition name="expand">
                   <div v-if="showDetails" class="mt-3 space-y-4 min-w-0">
                     <div class="space-y-1.5 min-w-0">
@@ -443,6 +590,19 @@ function appendTranscript(field: 'theory' | 'impact' | 'resources', text: string
                       <div class="bg-accent/10 border border-accent/20 text-accent text-xs rounded-md p-3">
                         Los nuevos aprendizajes se registran como una nota con la etiqueta "Aprendizaje" vinculada a la actividad.
                       </div>
+                    </div>
+
+                    <div v-if="aiLearnings" class="space-y-1.5 min-w-0">
+                      <label for="ai-learnings" class="block text-xs font-medium text-text">
+                        Nuevos aprendizajes <span class="text-text-muted">(se guardarán como nota con etiqueta "Aprendizaje")</span>
+                      </label>
+                      <textarea
+                        id="ai-learnings"
+                        v-model="aiLearnings"
+                        rows="3"
+                        class="w-full box-border bg-surface border border-accent/40 rounded-md px-2.5 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none min-w-0 overflow-hidden"
+                        @input="autoResize"
+                      ></textarea>
                     </div>
 
                     <div class="space-y-1.5 min-w-0">
