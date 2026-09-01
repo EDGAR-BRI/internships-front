@@ -1,22 +1,10 @@
-## Development
+# AGENTS.md
 
-When starting the dev server, use background mode:
+Astro 6 SSR + Vue 3 + Tailwind v4 PWA. Full repo guidance lives in `../AGENTS.md` — read it first.
 
-```
-astro dev --background
-```
-
-Manage the background server with `astro dev stop`, `astro dev status`, and `astro dev logs`.
-
-## Documentation
-
-Full documentation: https://docs.astro.build
-
-Consult these guides before working on related tasks:
-
-- [Adding pages, dynamic routes, or middleware](https://docs.astro.build/en/guides/routing/)
-- [Working with Astro components](https://docs.astro.build/en/basics/astro-components/)
-- [Using React, Vue, Svelte, or other framework components](https://docs.astro.build/en/guides/framework-components/)
-- [Adding or managing content](https://docs.astro.build/en/guides/content-collections/)
-- [Adding styles or using Tailwind](https://docs.astro.build/en/guides/styling/)
-- [Supporting multiple languages](https://docs.astro.build/en/guides/internationalization/)
+- Dev: `pnpm dev` (= `astro dev --host`, port 5173). There is no `astro dev --background` flag in this Astro version; run in a background terminal instead.
+- `pnpm typecheck` runs `astro check` (not `tsc`). Lint: `pnpm lint`.
+- Node 24 required (`.nvmrc`); `astro.config.mjs` uses `@astrojs/vercel` and `@tailwindcss/vite` plugins.
+- `PUBLIC_API_URL` must include the `/api/v1` prefix (see `../AGENTS.md`).
+- Pages: Astro routes in `src/pages/` (login/register are plain `.astro`); all in-app UI is Vue in `src/components/`; state in `src/stores/` with logic wrappers in `src/composables/`.
+- All HTTP via `src/lib/api.ts` (offline writes queued in `src/lib/syncQueue.ts`); exports live in `src/utils/` (docx via jszip, markdown).
