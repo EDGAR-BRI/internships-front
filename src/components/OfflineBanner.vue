@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/useAuth'
+import pinia from '../stores/pinia'
 import { initSyncQueue, flushQueue, syncState } from '../lib/syncQueue'
 
 const offline = ref(false)
@@ -25,7 +26,7 @@ function onSynced() {
 const justSynced = ref(false)
 
 async function syncNow() {
-  const auth = useAuthStore()
+  const auth = useAuthStore(pinia)
   const { sent } = await flushQueue(() => auth.token)
   if (sent > 0) {
     justSynced.value = true
@@ -36,7 +37,7 @@ async function syncNow() {
 onMounted(() => {
   update()
   if (!initDone) {
-    const auth = useAuthStore()
+    const auth = useAuthStore(pinia)
     initSyncQueue(() => auth.token)
     initDone = true
   }
