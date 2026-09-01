@@ -11,6 +11,7 @@ export interface UserSettings {
   startDate: string
   endDate: string
   ci: string | null
+  tutorName: string | null
   skippedWeeks: number[] | null
   workType: 'full' | 'partial' | null
   workHoursPerDay: number | null

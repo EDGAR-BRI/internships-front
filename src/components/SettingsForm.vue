@@ -13,6 +13,7 @@ const { logEntries, fetchLogEntries, updateLogEntry } = useLogEntries()
 const startDate = ref('')
 const endDate = ref('')
 const ci = ref('')
+const tutorName = ref('')
 const skippedWeeksInput = ref('')
 const workType = ref<'full' | 'partial' | ''>('')
 const workHoursPerDay = ref<number | ''>('')
@@ -29,6 +30,7 @@ onMounted(async () => {
     startDate.value = settings.value.startDate.slice(0, 10)
     endDate.value = settings.value.endDate.slice(0, 10)
     ci.value = settings.value.ci || ''
+    tutorName.value = settings.value.tutorName || ''
     skippedWeeksInput.value = settings.value.skippedWeeks?.join(', ') || ''
     workType.value = settings.value.workType || ''
     workHoursPerDay.value = settings.value.workHoursPerDay ?? ''
@@ -67,6 +69,7 @@ async function handleSubmit() {
       startDate: startDate.value,
       endDate: endDate.value,
       ci: ci.value.trim(),
+      tutorName: tutorName.value.trim(),
       skippedWeeks: skipped.length > 0 ? skipped : undefined,
     }
     if (workType.value) {
@@ -153,6 +156,21 @@ async function handleSubmit() {
         class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
       />
       <p class="text-xs text-text-muted">Se usa en la exportación del control de asistencia.</p>
+    </div>
+
+    <div class="space-y-1.5">
+      <label for="tutor-name" class="block text-sm font-medium text-text">
+        Nombre del tutor empresarial <span class="text-text-muted">(opcional)</span>
+      </label>
+      <input
+        id="tutor-name"
+        v-model="tutorName"
+        type="text"
+        maxlength="100"
+        placeholder="Ej. Ing. Zarkys Salas"
+        class="w-full box-border bg-surface border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+      />
+      <p class="text-xs text-text-muted">Aparece en la línea del tutor en el control de asistencia exportado.</p>
     </div>
 
     <div class="space-y-1.5">

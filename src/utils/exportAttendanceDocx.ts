@@ -113,12 +113,16 @@ function buildSheet(
     for (let r = 0; r < blockRows; r++) {
       const day = week ? week.days[r] ?? null : null
       const fullDay = !!day?.isFullDay
-      const checkIn = fullDay
-        ? formatClockTime(workStartTime)
-        : formatClockTime(day?.checkIn) || formatClockTime(workStartTime)
-      const checkOut = fullDay
-        ? formatClockTime(workEndTime)
-        : formatClockTime(day?.checkOut) || formatClockTime(workEndTime)
+      const checkIn = day
+        ? fullDay
+          ? formatClockTime(workStartTime)
+          : formatClockTime(day.checkIn) || formatClockTime(workStartTime)
+        : ''
+      const checkOut = day
+        ? fullDay
+          ? formatClockTime(workEndTime)
+          : formatClockTime(day.checkOut) || formatClockTime(workEndTime)
+        : ''
       dataRows.push(
         buildDataRow(dataTemplate, {
           merge: week ? (r === 0 ? 'restart' : 'continue') : 'none',
@@ -158,6 +162,11 @@ export async function generateAttendanceDocx(
   )
   xml = xml.replace('>C.I:</w:t>', `>C.I: ${escapeXml(ci)}</w:t>`)
 
+  const tutorName = (data.settings?.tutorName || '').trim()
+  if (tutorName) {
+    xml = xml.replace('Nombre del Tutor Empresarial', escapeXml(tutorName))
+  }
+
   const sorted = [...data.attendances].sort((a, b) => a.date.localeCompare(b.date))
   const weekMap = new Map<number, Attendance[]>()
   for (const attendance of sorted) {
@@ -177,6 +186,10 @@ export async function generateAttendanceDocx(
   if (!tableXml) throw new Error('Plantilla de asistencia inválida')
 
   const headerPart = xml.slice(0, xml.indexOf(tableXml))
+  const headerBlock = headerPart
+    .replace(/^<\?xml[^>]*\?>/, '')
+    .replace(/<w:document[^>]*>/, '')
+    .replace(/<w:body>/, '')
   const tailPart = xml.slice(xml.lastIndexOf('</w:tbl>') + '</w:tbl>'.length)
   const footerClean = tailPart
     .replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/, '')
@@ -193,6 +206,7 @@ export async function generateAttendanceDocx(
 
   let body = headerPart
   for (let i = 0; i < sheetGroups.length; i++) {
+    if (i > 0) body += headerBlock
     body += buildSheet(tableXml, sheetGroups[i], workStartTime, workEndTime)
     body += i < sheetGroups.length - 1 ? footerClean + pageBreak : tailPart
   }
