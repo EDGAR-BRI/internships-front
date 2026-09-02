@@ -12,6 +12,8 @@ import AttendanceCharts from './AttendanceCharts.vue'
 import AttendanceModeBar from './AttendanceModeBar.vue'
 import FeatureTour from './FeatureTour.vue'
 import AttendanceExportNoticeModal from './AttendanceExportNoticeModal.vue'
+import AttendanceExportModal from './AttendanceExportModal.vue'
+import type { AttendanceExportMode } from '../utils/exportAttendanceDocx'
 
 const {
   attendances,
@@ -31,10 +33,14 @@ const { user } = useAuth()
 const { mySubscription, fetchMySubscription } = useSubscription()
 
 const exporting = ref(false)
-const exportConfirmOpen = ref(false)
+const exportModalOpen = ref(false)
 const missingData = ref<string[]>([])
 
 const canExport = computed(() => mySubscription.value?.canExportAttendance ?? true)
+
+const showExtraExportOptions = computed(() =>
+  attendances.value.some((a) => a.hours > 8)
+)
 
 function missingExportData(): string[] {
   const missing: string[] = []
@@ -46,18 +52,21 @@ function missingExportData(): string[] {
   return missing
 }
 
-async function doExport() {
+async function doExport(mode: AttendanceExportMode) {
   if (exporting.value) return
   exporting.value = true
   try {
     await Promise.all([fetchAttendances(), fetchSummary(), fetchSettings(true)])
     if (error.value) throw new Error(error.value)
-    const blob = await buildAttendanceDocx({
-      fullName: user.value?.fullName ?? null,
-      settings: settings.value,
-      attendances: attendances.value,
-      summary: summary.value,
-    })
+    const blob = await buildAttendanceDocx(
+      {
+        fullName: user.value?.fullName ?? null,
+        settings: settings.value,
+        attendances: attendances.value,
+        summary: summary.value,
+      },
+      mode
+    )
     downloadDocx(blob)
   } catch (e) {
     console.error('Error al exportar la asistencia', e)
@@ -79,25 +88,11 @@ async function handleExport() {
     return
   }
   missingData.value = missingExportData()
-  if (missingData.value.length > 0) {
-    exportConfirmOpen.value = true
+  if (!showExtraExportOptions.value) {
+    await doExport('standard')
     return
   }
-  await doExport()
-}
-
-function exportAnyway() {
-  exportConfirmOpen.value = false
-  doExport()
-}
-
-function completeExportData() {
-  exportConfirmOpen.value = false
-  openSettingsModal()
-}
-
-function closeExportConfirm() {
-  exportConfirmOpen.value = false
+  exportModalOpen.value = true
 }
 
 function openSettingsModal() {
@@ -887,55 +882,14 @@ onUnmounted(() => {
       </Transition>
     </Teleport>
 
-    <!-- Modal de datos faltantes para exportar -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div
-          v-if="exportConfirmOpen"
-          class="fixed inset-0 z-[70] overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-          @click="closeExportConfirm"
-        >
-          <div
-            class="bg-canvas border border-border rounded-lg w-full max-w-sm shadow-2xl p-6 space-y-4"
-            @click.stop
-          >
-            <h3 class="text-lg font-semibold text-text">Faltan datos para el reporte</h3>
-            <p class="text-sm text-text-secondary">
-              Te faltan por completar en <span class="text-text font-medium">Ajustes</span>:
-            </p>
-            <ul class="text-sm text-text space-y-1">
-              <li v-for="item in missingData" :key="item" class="flex items-center gap-2">
-                <span class="w-1.5 h-1.5 rounded-full bg-warning shrink-0"></span>
-                {{ item }}
-              </li>
-            </ul>
-            <p class="text-xs text-text-muted">
-              Puedes exportar igualmente y completar los datos a mano, o llenarlos ahora.
-            </p>
-            <div class="flex flex-col sm:flex-row gap-2">
-              <button
-                @click="closeExportConfirm"
-                class="flex-1 bg-overlay hover:bg-hover text-text-secondary hover:text-text px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                @click="exportAnyway"
-                class="flex-1 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Exportar igualmente
-              </button>
-              <button
-                @click="completeExportData"
-                class="flex-1 bg-warning/15 hover:bg-warning/25 text-warning px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Completar datos
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <!-- Modal de selección de exportación -->
+    <AttendanceExportModal
+      :open="exportModalOpen"
+      :missing-data="missingData"
+      :show-extra-options="showExtraExportOptions"
+      @close="exportModalOpen = false"
+      @export="doExport"
+    />
 
     <AttendanceEditModal
       :is-open="editModalOpen"
