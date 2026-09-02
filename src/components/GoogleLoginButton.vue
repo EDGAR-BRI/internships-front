@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { PUBLIC_API_URL } from 'astro:env/client'
+import { resolveApiBase } from '../lib/apiUrl'
 
-const API_BASE = PUBLIC_API_URL
+const API_BASE = resolveApiBase()
 
 function handleGoogleLogin() {
   const callbackUrl = `${window.location.origin}/auth/callback`

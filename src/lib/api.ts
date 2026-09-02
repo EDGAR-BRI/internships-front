@@ -1,7 +1,7 @@
-import { PUBLIC_API_URL } from 'astro:env/client'
 import { enqueueOp } from './syncQueue'
+import { resolveApiBase } from './apiUrl'
 
-const API_BASE = PUBLIC_API_URL
+const API_BASE = resolveApiBase()
 
 interface ApiOptions {
   method?: string

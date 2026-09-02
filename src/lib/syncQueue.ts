@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { PUBLIC_API_URL } from 'astro:env/client'
+import { resolveApiBase } from './apiUrl'
 
 export interface QueuedOp {
   id: string
@@ -93,7 +93,7 @@ async function sendOp(op: QueuedOp, token: string | null): Promise<boolean> {
   return true
 }
 
-const API_BASE = PUBLIC_API_URL
+const API_BASE = resolveApiBase()
 
 export async function flushQueue(getToken: () => string | null): Promise<{
   sent: number
