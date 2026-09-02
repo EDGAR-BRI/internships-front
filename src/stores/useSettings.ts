@@ -18,6 +18,8 @@ export interface UserSettings {
   daysPerWeek: number | null
   workStartTime: string | null
   workEndTime: string | null
+  workMorningEndTime: string | null
+  workAfternoonStartTime: string | null
   geminiApiKey: string | null
 }
 

@@ -60,6 +60,8 @@ function buildDataRow(
     week: string
     date: string
     checkIn: string
+    morningEnd: string
+    afternoonStart: string
     checkOut: string
   }
 ): string {
@@ -81,7 +83,13 @@ function buildDataRow(
     )
     .replace(/<w:p[^>]*\/>/, opts.merge === 'restart' ? FILLED_PARA(opts.week) : EMPTY_PARA)
 
-  const fillMap: Record<number, string> = { 1: opts.date, 2: opts.checkIn, 8: opts.checkOut }
+  const fillMap: Record<number, string> = {
+    1: opts.date,
+    2: opts.checkIn,
+    4: opts.morningEnd,
+    6: opts.afternoonStart,
+    8: opts.checkOut,
+  }
   const rest = cells.slice(1).map((c, i) => {
     const value = fillMap[i + 1]
     return c.replace(/<w:p[^>]*\/>/, value ? FILLED_PARA(value) : EMPTY_PARA)
@@ -94,7 +102,9 @@ function buildSheet(
   tableXml: string,
   weeks: SheetWeek[],
   workStartTime: string | null,
-  workEndTime: string | null
+  workEndTime: string | null,
+  workMorningEndTime: string | null,
+  workAfternoonStartTime: string | null
 ): string {
   const rows = tableXml.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) ?? []
   if (rows.length < 18) return tableXml
@@ -118,6 +128,8 @@ function buildSheet(
           ? formatClockTime(workStartTime)
           : formatClockTime(day.checkIn) || formatClockTime(workStartTime)
         : ''
+      const morningEnd = day ? formatClockTime(workMorningEndTime) : ''
+      const afternoonStart = day ? formatClockTime(workAfternoonStartTime) : ''
       const checkOut = day
         ? fullDay
           ? formatClockTime(workEndTime)
@@ -129,6 +141,8 @@ function buildSheet(
           week: r === 0 && week ? String(week.week) : '',
           date: day ? formatDateShort(day.date) : '',
           checkIn,
+          morningEnd,
+          afternoonStart,
           checkOut,
         })
       )
@@ -217,6 +231,8 @@ export async function generateAttendanceDocx(
   const finalTail = withTutor
   const workStartTime = data.settings?.workStartTime ?? null
   const workEndTime = data.settings?.workEndTime ?? null
+  const workMorningEndTime = data.settings?.workMorningEndTime ?? null
+  const workAfternoonStartTime = data.settings?.workAfternoonStartTime ?? null
 
   const sheetGroups: SheetWeek[][] = []
   for (let i = 0; i < weeks.length; i += BLOCKS_PER_SHEET) {
@@ -227,7 +243,7 @@ export async function generateAttendanceDocx(
   let body = headerPart
   for (let i = 0; i < sheetGroups.length; i++) {
     if (i > 0) body += headerBlock
-    body += buildSheet(tableXml, sheetGroups[i], workStartTime, workEndTime)
+    body += buildSheet(tableXml, sheetGroups[i], workStartTime, workEndTime, workMorningEndTime, workAfternoonStartTime)
     body += i < sheetGroups.length - 1 ? footerClean + pageBreak : finalTail
   }
 
