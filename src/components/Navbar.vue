@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
-import SettingsModal from './SettingsModal.vue'
 import NoteModal from './NoteModal.vue'
 
 const { user, isAuthenticated, logout, restoreSession } = useAuth()
@@ -304,8 +303,6 @@ function isActive(path: string): boolean {
 
     <!-- Spacer for mobile bottom bar -->
     <div v-if="isAuthenticated" class="sm:hidden h-14"></div>
-
-    <SettingsModal />
 
     <NoteModal :is-open="noteModalOpen" @close="noteModalOpen = false" />
   </div>
