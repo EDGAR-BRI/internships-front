@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
 import { useNotes, type Note } from '../composables/useNotes'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
 import { NOTE_TAGS, tagLabel } from '../utils/noteTags'
@@ -28,8 +28,16 @@ const viewingEntry = ref<LogEntry | null>(null)
 
 const searchQuery = ref('')
 const dateFilter = ref<'all' | 'today' | 'week' | 'month'>('all')
+const selectedDate = ref('')
 const noteTypeFilter = ref<'all' | 'standalone' | 'activity'>('all')
 const tagFilter = ref<string>('all')
+
+watch(dateFilter, (v) => {
+  if (v !== 'all') selectedDate.value = ''
+})
+watch(selectedDate, (v) => {
+  if (v) dateFilter.value = 'all'
+})
 
 const availableTags = computed(() => {
   const present = new Set(notes.value.map((n) => n.tag).filter(Boolean) as string[])
@@ -64,6 +72,14 @@ const filteredNotes = computed(() => {
         (n.title?.toLowerCase().includes(q) ?? false) ||
         n.content.toLowerCase().includes(q)
     )
+  }
+
+  if (props.enableDateFilter && selectedDate.value) {
+    const [y, m, d] = selectedDate.value.split('-').map(Number)
+    result = result.filter((n) => {
+      const dt = new Date(n.date || n.createdAt)
+      return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d
+    })
   }
 
   if (props.enableDateFilter && dateFilter.value !== 'all') {
@@ -186,6 +202,13 @@ function closeDetailModal() {
           <option value="week">Esta semana</option>
           <option value="month">Este mes</option>
         </select>
+        <input
+          v-if="props.enableDateFilter"
+          v-model="selectedDate"
+          type="date"
+          title="Filtrar por día"
+          class="bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent transition-colors"
+        />
       </div>
     </div>
 
@@ -228,7 +251,7 @@ function closeDetailModal() {
       <svg class="w-10 h-10 mx-auto text-text-disabled mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
       </svg>
-      <p class="text-text-muted text-sm">No hay notas. Crea una para empezar.</p>
+      <p class="text-text-muted text-sm">{{ selectedDate ? 'No hay notas para ese día.' : 'No hay notas. Crea una para empezar.' }}</p>
     </div>
 
     <div v-else class="space-y-2">

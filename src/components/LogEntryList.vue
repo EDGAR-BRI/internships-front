@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useLogEntries, type LogEntry } from '../composables/useLogEntries'
 import { useNotes, type Note } from '../composables/useNotes'
 import LogEntryCard from './LogEntryCard.vue'
@@ -38,7 +38,15 @@ const noteViewOnly = ref(false)
 
 const searchQuery = ref('')
 const dateFilter = ref<'all' | 'today' | 'week' | 'month'>('all')
+const selectedDate = ref('')
 const viewMode = ref<'grid' | 'list'>('list')
+
+watch(dateFilter, (v) => {
+  if (v !== 'all') selectedDate.value = ''
+})
+watch(selectedDate, (v) => {
+  if (v) dateFilter.value = 'all'
+})
 
 const filters: { value: 'all' | LogEntry['status']; label: string }[] = [
   { value: 'all', label: 'Todas' },
@@ -71,6 +79,17 @@ const filteredEntries = computed(() => {
             n.content.toLowerCase().includes(q)
         )
       return matchesEntry || matchesNotes
+    })
+  }
+
+  if (props.enableDateFilter && selectedDate.value) {
+    const [y, m, d] = selectedDate.value.split('-').map(Number)
+    const dayStart = new Date(y, m - 1, d)
+    const dayEnd = new Date(y, m - 1, d + 1)
+    result = result.filter((t) => {
+      const start = new Date(t.datStart || t.createdAt)
+      const end = t.datEnd ? new Date(t.datEnd) : null
+      return start < dayEnd && (end === null || end > dayStart)
     })
   }
 
@@ -250,6 +269,13 @@ async function handleDeleteNote(id: number) {
           <option value="week">Esta semana</option>
           <option value="month">Este mes</option>
         </select>
+        <input
+          v-if="props.enableDateFilter"
+          v-model="selectedDate"
+          type="date"
+          title="Filtrar por día"
+          class="bg-overlay border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent transition-colors"
+        />
         <div v-if="props.enableViewToggle" class="flex items-center gap-1 bg-overlay border border-border rounded-md p-0.5">
           <button
             @click="viewMode = 'grid'"
@@ -313,7 +339,9 @@ async function handleDeleteNote(id: number) {
       </svg>
       <p class="text-text-muted text-sm">
         {{ activeFilter === 'all'
-          ? 'No hay actividades. Crea una para empezar.'
+          ? (selectedDate
+              ? 'No hay actividades para ese día.'
+              : 'No hay actividades. Crea una para empezar.')
           : 'No hay actividades en esta categoría.'
         }}
       </p>
