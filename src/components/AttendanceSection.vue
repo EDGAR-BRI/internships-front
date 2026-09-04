@@ -416,15 +416,21 @@ onUnmounted(() => {
 <template>
   <div class="space-y-6">
     <!-- Header / Fecha -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-lg font-semibold text-text">Asistencia</h1>
-        <p class="text-sm text-text-muted capitalize">{{ today }}</p>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h1 class="text-lg font-semibold text-text">Asistencia</h1>
+          <p class="text-sm text-text-muted capitalize">{{ today }}</p>
+        </div>
+        <div v-if="currentWeek" class="text-right md:hidden">
+          <p class="text-xs text-text-muted">Semana de pasantía</p>
+          <p class="text-lg font-bold text-accent">{{ currentWeek }}</p>
+        </div>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-col sm:flex-row gap-2 md:items-center">
         <button
           @click="bulkModalOpen = true"
-          class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-overlay text-text-secondary hover:text-text hover:bg-hover transition-colors"
+          class="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-overlay text-text-secondary hover:text-text hover:bg-hover transition-colors flex-1 sm:flex-none"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -434,14 +440,14 @@ onUnmounted(() => {
         <button
           @click="handleExport"
           :disabled="exporting"
-          class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-1 sm:flex-none"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
           {{ exporting ? 'Exportando…' : 'Exportar asistencia' }}
         </button>
-        <div v-if="currentWeek" class="text-right">
+        <div v-if="currentWeek" class="text-right hidden md:block">
           <p class="text-xs text-text-muted">Semana de pasantía</p>
           <p class="text-lg font-bold text-accent">{{ currentWeek }}</p>
         </div>
