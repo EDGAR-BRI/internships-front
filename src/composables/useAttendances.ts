@@ -21,6 +21,7 @@ export function useAttendances() {
     checkOut: store.checkOut,
     registerFullDay: store.registerFullDay,
     registerPartial: store.registerPartial,
+    bulkRegister: store.bulkRegister,
     updateAttendance: store.updateAttendance,
     deleteAttendance: store.deleteAttendance,
     attendanceForDate: store.attendanceForDate,

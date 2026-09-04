@@ -237,6 +237,49 @@ export const useAttendancesStore = defineStore(
       }
     }
 
+    async function bulkRegister(payload: {
+      dates: string[]
+      isFullDay?: boolean
+      hours?: number
+      mode?: Attendance['mode']
+      checkIn?: string
+      checkOut?: string
+    }) {
+      const auth = useAuthStore()
+      error.value = ''
+      try {
+        const data = await api.post<{ created: number; skipped: number; attendances: Attendance[] }>(
+          '/attendances/bulk',
+          payload,
+          auth.token || undefined
+        )
+        for (const att of data.attendances) upsertLocal(att)
+        touch()
+        invalidateSummary()
+        return data
+      } catch (e: any) {
+        if (e instanceof OfflineQueuedError) {
+          for (const d of payload.dates) {
+            upsertLocal(
+              localAttendance({
+                date: d,
+                isFullDay: payload.isFullDay,
+                hours: payload.hours,
+                mode: payload.mode,
+                checkIn: payload.checkIn,
+                checkOut: payload.checkOut,
+              })
+            )
+          }
+          touch()
+          invalidateSummary()
+          throw e
+        }
+        error.value = e.message || 'Error al registrar asistencias en lote'
+        throw e
+      }
+    }
+
     async function updateAttendance(
       id: number,
       payload: {
@@ -332,6 +375,7 @@ export const useAttendancesStore = defineStore(
       checkOut,
       registerFullDay,
       registerPartial,
+      bulkRegister,
       updateAttendance,
       deleteAttendance,
       attendanceForDate,
